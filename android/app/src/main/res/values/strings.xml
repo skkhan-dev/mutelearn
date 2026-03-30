@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">MuteLearn</string>
+    <string name="title_activity_main">MuteLearn</string>
+    <string name="package_name">com.mutelearn.app</string>
+    <string name="custom_url_scheme">com.mutelearn.app</string>
+</resources>

@@ -1,0 +1,191 @@
+@import "tailwindcss";
+@import "@fontsource/opendyslexic";
+
+/* Mode-specific CSS custom properties */
+:root {
+  --bg-primary: #ffffff;
+  --bg-secondary: #f8fafc;
+  --bg-card: #ffffff;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --accent: #6366f1;
+  --accent-light: #e0e7ff;
+  --accent-hover: #4f46e5;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --error: #f97316;
+  --border: #e5e7eb;
+  --font-family: "Inter", system-ui, -apple-system, sans-serif;
+  --font-size-base: 16px;
+  --letter-spacing: normal;
+  --word-spacing: normal;
+  --line-height: 1.6;
+  --radius: 12px;
+}
+
+.mode-adhd {
+  --bg-primary: #f0f4ff;
+  --bg-secondary: #e8eeff;
+  --bg-card: #ffffff;
+  --text-primary: #1e293b;
+  --text-secondary: #64748b;
+  --accent: #6366f1;
+  --accent-light: #e0e7ff;
+  --accent-hover: #4f46e5;
+  --font-size-base: 17px;
+}
+
+.mode-dyslexia {
+  --bg-primary: #fbf5e6;
+  --bg-secondary: #f5edd4;
+  --bg-card: #fdf8ee;
+  --text-primary: #3b2f2f;
+  --text-secondary: #5c4a4a;
+  --accent: #b45309;
+  --accent-light: #fef3c7;
+  --accent-hover: #92400e;
+  --font-family: "OpenDyslexic", sans-serif;
+  --font-size-base: 18px;
+  --letter-spacing: 0.35ch;
+  --word-spacing: 1.225ch;
+  --line-height: 2;
+}
+
+.mode-add {
+  --bg-primary: #f5f5f0;
+  --bg-secondary: #eeede6;
+  --bg-card: #fafaf7;
+  --text-primary: #374151;
+  --text-secondary: #6b7280;
+  --accent: #059669;
+  --accent-light: #d1fae5;
+  --accent-hover: #047857;
+  --font-size-base: 16px;
+}
+
+body {
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  letter-spacing: var(--letter-spacing);
+  word-spacing: var(--word-spacing);
+  line-height: var(--line-height);
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.mode-dyslexia em,
+.mode-dyslexia i {
+  font-style: normal;
+  font-weight: 700;
+}
+
+.mode-dyslexia * {
+  font-feature-settings: "liga" 0;
+}
+
+/* Flip card animation */
+.flip-card {
+  perspective: 1000px;
+}
+
+.flip-card-inner {
+  transition: transform 0.5s;
+  transform-style: preserve-3d;
+}
+
+.flip-card-inner.flipped {
+  transform: rotateY(180deg);
+}
+
+.flip-card-front,
+.flip-card-back {
+  backface-visibility: hidden;
+}
+
+.flip-card-back {
+  transform: rotateY(180deg);
+}
+
+/* Smooth mode transitions */
+body * {
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Focus styles */
+*:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--bg-secondary);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 3px;
+}
+
+/* Level up animation */
+@keyframes levelUp {
+  0% { transform: scale(0.5); opacity: 0; }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-100px) rotate(720deg); opacity: 0; }
+}
+
+.animate-level-up {
+  animation: levelUp 0.5s ease-out;
+}
+
+.animate-confetti {
+  animation: confetti 1s ease-out forwards;
+}
+
+/* Slide in for Professor chat */
+@keyframes slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes slideOut {
+  from { transform: translateX(0); }
+  to { transform: translateX(100%); }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+.slide-out {
+  animation: slideOut 0.3s ease-in;
+}
+
+/* Shared component animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
