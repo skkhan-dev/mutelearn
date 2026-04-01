@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MuteLearn Adaptive LMS Integration Plan</title>
+  <style>
+    body {
+      font-family: "Aptos", "Helvetica Neue", Arial, sans-serif;
+      line-height: 1.55;
+      color: #1f2937;
+      max-width: 900px;
+      margin: 48px auto;
+      padding: 0 24px 48px;
+    }
+    h1, h2, h3 {
+      color: #111827;
+      margin-top: 1.4em;
+      margin-bottom: 0.4em;
+      line-height: 1.2;
+    }
+    h1 {
+      font-size: 30px;
+      border-bottom: 2px solid #dbeafe;
+      padding-bottom: 12px;
+    }
+    h2 {
+      font-size: 22px;
+      border-left: 5px solid #6366f1;
+      padding-left: 12px;
+    }
+    h3 {
+      font-size: 18px;
+    }
+    p {
+      margin: 0.7em 0;
+    }
+    ul, ol {
+      margin: 0.7em 0 1em 1.5em;
+    }
+    li {
+      margin: 0.35em 0;
+    }
+    .lead {
+      font-size: 17px;
+    }
+    .callout {
+      background: #f8fafc;
+      border: 1px solid #e5e7eb;
+      border-left: 5px solid #8b5cf6;
+      padding: 14px 16px;
+      border-radius: 10px;
+      margin: 18px 0;
+    }
+    .tagline {
+      font-weight: 700;
+      color: #4f46e5;
+    }
+    .phase {
+      background: #fafafa;
+      border: 1px solid #e5e7eb;
+      border-radius: 12px;
+      padding: 16px 18px;
+      margin: 14px 0;
+    }
+    .muted {
+      color: #4b5563;
+    }
+  </style>
+</head>
+<body>
+  <h1>MuteLearn Adaptive LMS Integration Plan</h1>
+
+  <p class="lead">
+    This document combines Shahir's current MuteLearn direction with the recommended product strategy for
+    LMS workflow integration. The goal is to preserve the strongest part of the project, adaptive support
+    for neurodivergent learners, while adding a workflow layer that incumbents only partially cover.
+  </p>
+
+  <div class="callout">
+    <p><strong>Core product direction:</strong></p>
+    <p class="tagline">MuteLearn should become the adaptive study operating system for neurodivergent students.</p>
+    <p class="muted">
+      It should not position itself as a generic AI note taker or a broad "summarize anything" competitor.
+    </p>
+  </div>
+
+  <h2>1. Strategic Foundation</h2>
+  <p>
+    Shahir's current idea is already the right core: a learning system that adapts timing, chunking,
+    interface behavior, reminders, accessibility defaults, and motivation systems based on the student's
+    declared cognitive profile.
+  </p>
+  <p>
+    That core should remain the product identity. The LMS layer should act as the input system that feeds
+    the adaptive engine with real school data.
+  </p>
+
+  <h2>2. What MuteLearn Should Become</h2>
+  <p>MuteLearn should combine three layers into one experience:</p>
+  <ol>
+    <li><strong>Adaptive learner profile layer</strong> for ADHD, dyslexia, ADD, and standard learners.</li>
+    <li><strong>Academic workflow sync layer</strong> for classes, assignments, due dates, grades, and study materials.</li>
+    <li><strong>AI study support layer</strong> for tutoring, weak-area detection, study packs, and exam review support.</li>
+  </ol>
+
+  <h2>3. Product Pillars</h2>
+
+  <h3>Pillar A: Keep the adaptive-neurodivergent core</h3>
+  <ul>
+    <li>Preserve onboarding by cognitive profile.</li>
+    <li>Keep personalized timing, task chunking, focus mode, nudges, and accessibility defaults.</li>
+    <li>Continue using adaptive gamification and different study flows by mode.</li>
+  </ul>
+
+  <h3>Pillar B: Add Academic Workflow Sync</h3>
+  <p>Integrate LMS platforms so MuteLearn can read:</p>
+  <ul>
+    <li>Courses and sections</li>
+    <li>Assignments and due dates</li>
+    <li>Course files and lecture materials</li>
+    <li>Announcements and calendar items where available</li>
+    <li>Grades, rubric comments, and submission status</li>
+    <li>Quiz or exam review data when the LMS and instructor permissions allow it</li>
+  </ul>
+
+  <p>The priority order should be:</p>
+  <ol>
+    <li>Canvas</li>
+    <li>Moodle</li>
+    <li>Blackboard</li>
+  </ol>
+
+  <h3>Pillar C: Convert synced data into adaptive support</h3>
+  <p>Imported LMS data should immediately power:</p>
+  <ul>
+    <li>Exam countdowns</li>
+    <li>Daily and weekly task lists</li>
+    <li>Class-specific study plans</li>
+    <li>Missing-work alerts</li>
+    <li>Weak-area detection from grades and quiz outcomes</li>
+    <li>Assignment and exam-specific study packs</li>
+  </ul>
+
+  <h3>Pillar D: Upgrade Professor into a course-aware tutor</h3>
+  <p>Professor should become aware of:</p>
+  <ul>
+    <li>Current class and current deck</li>
+    <li>Upcoming assignments and exams</li>
+    <li>Weak topics and past scores</li>
+    <li>Lecture files, notes, and assessment feedback</li>
+  </ul>
+  <p>
+    This turns Professor from generic chat into a personalized study coach that understands what the student
+    needs to do next.
+  </p>
+
+  <h3>Pillar E: Introduce Study Packs as the signature workflow</h3>
+  <p>Each assignment, quiz, or exam should be convertible into a packaged workspace containing:</p>
+  <ul>
+    <li>Assignment or exam summary</li>
+    <li>Linked lecture files and reading materials</li>
+    <li>Extracted concepts and key terms</li>
+    <li>Flashcards and practice questions</li>
+    <li>An adaptive study plan</li>
+    <li>A review checklist and mastery tracker</li>
+    <li>A due date or exam countdown</li>
+  </ul>
+
+  <h2>4. What Fits Best From the Recommendations</h2>
+  <ul>
+    <li><strong>Source-grounded notes and citations:</strong> helpful for reducing confusion and uncertainty.</li>
+    <li><strong>Weak-area detection and mastery tracking:</strong> highly aligned with the adaptive-learning thesis.</li>
+    <li><strong>Course workspaces:</strong> a strong fit because they create structure instead of feature sprawl.</li>
+    <li><strong>Teacher, tutor, or parent visibility:</strong> a strong long-term differentiator.</li>
+  </ul>
+
+  <p>Ideas that should be delayed or avoided early:</p>
+  <ul>
+    <li>Generic "summarize anything" positioning</li>
+    <li>Feature-heavy mind maps and podcast generation before the core workflow is proven</li>
+    <li>Full write-back homework submission in the earliest phase</li>
+  </ul>
+
+  <h2>5. Execution Plan</h2>
+
+  <div class="phase">
+    <h3>Phase 1: Stabilize the current prototype</h3>
+    <p><strong>Goal:</strong> Make the current product reliable enough to build on.</p>
+    <ul>
+      <li>Fix navigation and route mismatches.</li>
+      <li>Clean up core app lint issues.</li>
+      <li>Exclude generated assets from lint scope.</li>
+      <li>Define stable data contracts for users, courses, assignments, study packs, and progress.</li>
+    </ul>
+    <p><strong>Deliverable:</strong> a solid, demo-ready application foundation.</p>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 2: Add backend, auth, and persistence</h3>
+    <p><strong>Goal:</strong> Move beyond local-only storage.</p>
+    <ul>
+      <li>Add authenticated accounts.</li>
+      <li>Persist decks, notes, quiz history, imports, and settings.</li>
+      <li>Store connector tokens securely.</li>
+      <li>Add a job system for sync and parsing tasks.</li>
+    </ul>
+    <p><strong>Deliverable:</strong> a server-backed product that can support LMS connectors.</p>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 3: Canvas-first LMS integration</h3>
+    <p><strong>Goal:</strong> Ship one complete LMS workflow first.</p>
+    <ul>
+      <li>Connect Canvas with secure OAuth/server-side integration.</li>
+      <li>Import courses, assignments, deadlines, files, grades, and review data when available.</li>
+      <li>Add sync status and course mapping UI.</li>
+    </ul>
+    <p><strong>Deliverable:</strong> students can connect Canvas and see their academic workflow inside MuteLearn.</p>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 4: Adaptive planner and countdown system</h3>
+    <p><strong>Goal:</strong> Turn imported school data into a clear daily plan.</p>
+    <ul>
+      <li>Build Today and This Week views.</li>
+      <li>Surface overdue or at-risk assignments.</li>
+      <li>Add exam countdowns.</li>
+      <li>Apply mode-specific task chunking and reminders.</li>
+    </ul>
+    <p><strong>Deliverable:</strong> MuteLearn becomes a real academic workflow system.</p>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 5: Course-aware Professor and weak-area engine</h3>
+    <p><strong>Goal:</strong> Make the tutor meaningfully adaptive.</p>
+    <ul>
+      <li>Infer weak areas from grades, quiz results, and missed questions.</li>
+      <li>Feed course, assignment, deck, deadline, and weak-topic context into Professor.</li>
+      <li>Enable assignment explanation, lecture explanation, and exam prep coaching.</li>
+      <li>Add source-grounded references where possible.</li>
+    </ul>
+    <p><strong>Deliverable:</strong> Professor becomes a personalized study coach instead of generic chat.</p>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 6: Study Packs and exam review</h3>
+    <p><strong>Goal:</strong> Own a workflow incumbents only partially cover.</p>
+    <ul>
+      <li>Generate study packs from assignments, units, quizzes, and exams.</li>
+      <li>Create flashcards, practice quizzes, review lists, and study plans automatically.</li>
+      <li>Support exam review whenever LMS permissions allow access to attempts and feedback.</li>
+    </ul>
+    <p><strong>Deliverable:</strong> a signature MuteLearn workflow with high student value.</p>
+  </div>
+
+  <div class="phase">
+    <h3>Phase 7: Expand connectors</h3>
+    <p><strong>Goal:</strong> grow platform coverage after proving the workflow.</p>
+    <ol>
+      <li>Moodle</li>
+      <li>Blackboard</li>
+      <li>Optional lecture-video connectors later, such as Panopto or Kaltura, if demand justifies them</li>
+    </ol>
+  </div>
+
+  <h2>6. Technical Architecture Direction</h2>
+  <ul>
+    <li><strong>Frontend:</strong> existing React app</li>
+    <li><strong>Backend:</strong> API layer for auth, LMS connectors, sync orchestration, and AI tasks</li>
+    <li><strong>Database:</strong> users, courses, assignments, files, grades, study packs, sync logs, reminders</li>
+    <li><strong>Object storage:</strong> uploaded files and extracted artifacts</li>
+    <li><strong>Jobs/queue:</strong> LMS sync, file parsing, flashcard generation, quiz generation</li>
+    <li><strong>AI layer:</strong> Professor, summarization, flashcard generation, quiz generation, study planning</li>
+  </ul>
+
+  <div class="callout">
+    <p><strong>Important implementation rule:</strong></p>
+    <p>
+      LMS integrations should be handled server-side, not directly from the browser. This is especially
+      important for token handling, institution-specific permissions, and platforms like Blackboard.
+    </p>
+  </div>
+
+  <h2>7. MVP Recommendation</h2>
+  <p>The highest-value first release should include:</p>
+  <ul>
+    <li>Stabilized app foundation</li>
+    <li>Backend persistence and auth</li>
+    <li>Canvas integration</li>
+    <li>Assignment, due date, and grade sync</li>
+    <li>Adaptive planner</li>
+    <li>Exam countdowns</li>
+    <li>Class-specific study plans</li>
+    <li>Basic study pack generation</li>
+    <li>Professor aware of course context and weak areas</li>
+  </ul>
+
+  <h2>8. Risks and Constraints</h2>
+  <ul>
+    <li>Institutional permissions may limit access to files, grades, or exam review data.</li>
+    <li>Exam review depends on LMS capabilities and instructor settings.</li>
+    <li>Student data and grades require careful privacy and security handling.</li>
+    <li>The current prototype still needs stabilization before connector work starts.</li>
+  </ul>
+
+  <h2>9. Success Metrics</h2>
+  <ul>
+    <li>LMS connection completion rate</li>
+    <li>Weekly active students</li>
+    <li>Percentage of users with at least one synced course</li>
+    <li>Study pack creation rate</li>
+    <li>Assignment completion improvement</li>
+    <li>Exam prep engagement</li>
+    <li>Retention by cognitive mode</li>
+  </ul>
+
+  <h2>10. Final Recommendation</h2>
+  <p>
+    The strongest path is to keep Shahir's adaptive-neurodivergent product core, add LMS workflow sync as
+    the input layer, and turn that data into adaptive planning, weak-area detection, course-aware tutoring,
+    and study packs.
+  </p>
+  <p class="tagline">
+    In short: preserve the adaptive identity, then win on workflow.
+  </p>
+</body>
+</html>

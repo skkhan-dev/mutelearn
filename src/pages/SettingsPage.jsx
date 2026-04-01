@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { useMode } from '../contexts/ModeContext';
 import { useUser } from '../contexts/UserContext';
+import { useLMS } from '../contexts/LMSContext';
+import { usePlatform } from '../contexts/PlatformContext';
 import { modeDefaults } from '../config/modeDefaults';
+import { formatDateTime } from '../lib/dateUtils';
 
 function SettingSection({ title, description, children }) {
   return (
@@ -17,6 +20,32 @@ function SettingSection({ title, description, children }) {
 export default function SettingsPage() {
   const { mode, switchMode, modeConfig, updateModeConfig } = useMode();
   const { user, updateUser } = useUser();
+  const {
+    connectors,
+    isCanvasConnected,
+    isSyncing,
+    syncSource,
+    syncError,
+    activeSyncJobId,
+    syncCanvas,
+    connectCanvasDemo,
+    disconnectConnector,
+  } = useLMS();
+  const {
+    backendStatus,
+    backendInfo,
+    session,
+    syncJobs,
+    canvasConfig,
+    canvasAuthLink,
+    error: platformError,
+    loginDev,
+    logout,
+    requestCanvasAuthLink,
+    refreshHealth,
+    refreshSession,
+    refreshConnectors,
+  } = usePlatform();
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [name, setName] = useState(user.name || '');
   const [gradeLevel, setGradeLevel] = useState(user.gradeLevel || '');
@@ -76,7 +105,30 @@ export default function SettingsPage() {
     window.location.reload();
   };
 
+  const handleDevLogin = async () => {
+    await loginDev({
+      name: user.name || 'Learner',
+      gradeLevel: user.gradeLevel || 'high-school',
+    });
+    await refreshConnectors();
+  };
+
+  const handleCanvasAuthStart = async () => {
+    const payload = await requestCanvasAuthLink();
+    if (payload?.authorizationUrl) {
+      window.open(payload.authorizationUrl, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  const handleCanvasSync = async () => {
+    await syncCanvas();
+    await Promise.all([refreshSession(), refreshConnectors()]);
+  };
+
   const timerSettings = modeConfig?.timer || { focus: 25, shortBreak: 5, longBreak: 15 };
+  const canvasConnector = connectors.find((connector) => connector.id === 'canvas');
+  const canvasAuthStatus = session?.oauth?.canvas?.status || canvasConfig?.authorizationStatus;
+  const hasLiveCanvasToken = Boolean(session?.oauth?.canvas?.accountName || canvasConfig?.hasToken);
 
   return (
     <div className="max-w-3xl mx-auto px-4 py-6 space-y-6">
@@ -106,6 +158,245 @@ export default function SettingsPage() {
               <span className="text-xs text-gray-500 block mt-1">{config.description}</span>
             </button>
           ))}
+        </div>
+      </SettingSection>
+
+      <SettingSection
+        title="Backend Session"
+        description="Local API scaffolding for auth, connector status, and future production sync jobs."
+      >
+        <div className="space-y-4">
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <div className="flex items-center gap-2">
+                  <p className="font-semibold text-gray-800">API status</p>
+                  <span
+                    className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                      backendStatus === 'online'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : backendStatus === 'checking'
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'bg-gray-200 text-gray-600'
+                    }`}
+                  >
+                    {backendStatus}
+                  </span>
+                </div>
+                {backendInfo && (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Last seen {formatDateTime(backendInfo.serverTime)}
+                  </p>
+                )}
+                {platformError && (
+                  <p className="text-sm text-amber-700 mt-2">{platformError}</p>
+                )}
+              </div>
+              <button
+                onClick={refreshHealth}
+                className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+              >
+                Refresh API
+              </button>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div>
+                <p className="font-semibold text-gray-800">Dev session</p>
+                {session ? (
+                  <p className="text-sm text-gray-500 mt-1">
+                    Signed in as {session.user.name} ({session.user.gradeLevel})
+                  </p>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">
+                    No backend session yet. Demo login unlocks server-backed connector state.
+                  </p>
+                )}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                {!session ? (
+                  <button
+                    onClick={handleDevLogin}
+                    className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                    disabled={backendStatus !== 'online'}
+                  >
+                    Create Dev Session
+                  </button>
+                ) : (
+                  <button
+                    onClick={logout}
+                    className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+                  >
+                    Sign Out
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </SettingSection>
+
+      <SettingSection
+        title="LMS Integration"
+        description="Manage course sync so MuteLearn can build planners, study packs, and deadline reminders."
+      >
+        <div className="space-y-4">
+          {connectors.map((connector) => (
+            <div
+              key={connector.id}
+              className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4"
+            >
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-gray-800">{connector.name}</h3>
+                    <span
+                      className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
+                        connector.status === 'connected'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : 'bg-gray-200 text-gray-600'
+                      }`}
+                    >
+                      {connector.status}
+                    </span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Capabilities: {connector.capabilities.join(', ')}
+                  </p>
+                  {canvasConfig && connector.id === 'canvas' && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      OAuth ready: {canvasConfig.oauthConfigured ? 'yes' : 'not yet'}
+                      {canvasConnector?.connectionMode && ` · Mode: ${canvasConnector.connectionMode}`}
+                    </p>
+                  )}
+                  {connector.id === 'canvas' && canvasAuthStatus && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Auth status: {canvasAuthStatus}
+                      {hasLiveCanvasToken && session?.oauth?.canvas?.accountName
+                        ? ` · ${session.oauth.canvas.accountName}`
+                        : ''}
+                    </p>
+                  )}
+                  {session?.oauth?.canvas?.lastError && connector.id === 'canvas' && (
+                    <p className="text-xs text-amber-700 mt-2">{session.oauth.canvas.lastError}</p>
+                  )}
+                  {canvasAuthLink && connector.id === 'canvas' && (
+                    <a
+                      href={canvasAuthLink}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-block text-xs text-indigo-600 mt-2 break-all"
+                    >
+                      Latest auth URL
+                    </a>
+                  )}
+                  {connector.lastSyncedAt && (
+                    <p className="text-xs text-gray-400 mt-2">
+                      Last synced {formatDateTime(connector.lastSyncedAt)}
+                    </p>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  {connector.id === 'canvas' && canvasConfig?.oauthConfigured && session && (
+                    <button
+                      onClick={handleCanvasAuthStart}
+                      className="px-4 py-2 rounded-xl border border-indigo-200 text-indigo-600 hover:bg-indigo-50 transition-colors"
+                    >
+                      {canvasAuthStatus === 'authorized' || canvasAuthStatus === 'pending'
+                        ? 'Reconnect Canvas'
+                        : 'Connect Canvas'}
+                    </button>
+                  )}
+                  {connector.id === 'canvas' && (isCanvasConnected || canvasAuthStatus === 'authorized') && (
+                    <>
+                      <button
+                        onClick={handleCanvasSync}
+                        className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                      >
+                        {isSyncing ? 'Syncing…' : 'Sync Canvas'}
+                      </button>
+                      <button
+                        onClick={() => disconnectConnector('canvas')}
+                        className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+                      >
+                        Disconnect
+                      </button>
+                    </>
+                  )}
+                  {connector.id === 'canvas' && (
+                    <button
+                      onClick={connectCanvasDemo}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+                    >
+                      Use Demo Data
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+
+          {(syncError || syncSource) && (
+            <p className="text-xs text-gray-400">
+              Latest sync source: {syncSource || 'none'}
+              {activeSyncJobId ? ` · Active job: ${activeSyncJobId.slice(0, 12)}` : ''}
+              {syncError ? ` · Warning: ${syncError}` : ''}
+            </p>
+          )}
+        </div>
+      </SettingSection>
+
+      <SettingSection
+        title="Recent Sync Activity"
+        description="A lightweight activity log for connector runs so local backend work is easier to verify."
+      >
+        <div className="space-y-3">
+          {syncJobs.length > 0 ? (
+            syncJobs.map((job) => (
+              <div
+                key={job.id}
+                className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4"
+              >
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-800">
+                      {job.connectorId} sync · {job.source}
+                    </p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      {job.startedAt
+                        ? `Started ${formatDateTime(job.startedAt)}`
+                        : `Queued ${formatDateTime(job.queuedAt)}`}
+                      {job.finishedAt ? ` · Finished ${formatDateTime(job.finishedAt)}` : ''}
+                    </p>
+                    {job.summary && (
+                      <p className="text-sm text-gray-600 mt-2">{job.summary}</p>
+                    )}
+                    {job.error && (
+                      <p className="text-sm text-amber-700 mt-2">{job.error}</p>
+                    )}
+                  </div>
+                  <span
+                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                      job.status === 'completed'
+                        ? 'bg-emerald-50 text-emerald-700'
+                        : job.status === 'failed'
+                        ? 'bg-amber-50 text-amber-700'
+                        : 'bg-indigo-50 text-indigo-700'
+                    }`}
+                  >
+                    {job.status}
+                  </span>
+                </div>
+              </div>
+            ))
+          ) : (
+            <p className="text-sm text-gray-500">
+              No connector jobs yet. Run a demo sync or a live Canvas sync to populate this log.
+            </p>
+          )}
         </div>
       </SettingSection>
 

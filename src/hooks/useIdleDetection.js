@@ -4,8 +4,7 @@ export function useIdleDetection(timeoutSeconds = 120) {
   const [isIdle, setIsIdle] = useState(false);
   const timerRef = useRef(null);
 
-  const resetIdle = useCallback(() => {
-    setIsIdle(false);
+  const startTimer = useCallback(() => {
     clearTimeout(timerRef.current);
     if (timeoutSeconds > 0) {
       timerRef.current = setTimeout(() => {
@@ -13,6 +12,11 @@ export function useIdleDetection(timeoutSeconds = 120) {
       }, timeoutSeconds * 1000);
     }
   }, [timeoutSeconds]);
+
+  const resetIdle = useCallback(() => {
+    setIsIdle(false);
+    startTimer();
+  }, [startTimer]);
 
   useEffect(() => {
     if (timeoutSeconds <= 0) return;
@@ -23,14 +27,13 @@ export function useIdleDetection(timeoutSeconds = 120) {
 
     events.forEach((event) => window.addEventListener(event, handleActivity, { passive: true }));
 
-    // Start the initial timer
-    resetIdle();
+    startTimer();
 
     return () => {
       events.forEach((event) => window.removeEventListener(event, handleActivity));
       clearTimeout(timerRef.current);
     };
-  }, [timeoutSeconds, resetIdle]);
+  }, [timeoutSeconds, resetIdle, startTimer]);
 
   return { isIdle, resetIdle };
 }

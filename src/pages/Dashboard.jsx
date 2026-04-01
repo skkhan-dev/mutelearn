@@ -1,10 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useUser } from '../contexts/UserContext';
 import { useMode } from '../contexts/ModeContext';
+import { useLMS } from '../contexts/LMSContext';
+import { useProfessor } from '../contexts/ProfessorContext';
 import { useGamification } from '../contexts/GamificationContext';
 import { useStudy } from '../contexts/StudyContext';
 import { xpPerLevel, levelNames, encouragingMessages } from '../config/modeDefaults';
+import { formatDateTime, formatRelativeTime } from '../lib/dateUtils';
+import { stablePick } from '../lib/textUtils';
 
 function StatCard({ icon, label, value, color = 'var(--color-primary)' }) {
   return (
@@ -41,18 +45,7 @@ function QuickAction({ to, icon, label, description, color }) {
   );
 }
 
-function ActivityItem({ activity }) {
-  const timeAgo = (dateStr) => {
-    const diff = Date.now() - new Date(dateStr).getTime();
-    const mins = Math.floor(diff / 60000);
-    if (mins < 1) return 'just now';
-    if (mins < 60) return `${mins}m ago`;
-    const hours = Math.floor(mins / 60);
-    if (hours < 24) return `${hours}h ago`;
-    const days = Math.floor(hours / 24);
-    return `${days}d ago`;
-  };
-
+function ActivityItem({ activity, referenceTime }) {
   const typeIcons = {
     session: '📖',
     quiz: '📝',
@@ -67,7 +60,9 @@ function ActivityItem({ activity }) {
         <p className="text-sm font-medium text-gray-700 truncate">
           {activity.description || `Completed a ${activity.type}`}
         </p>
-        <p className="text-xs text-gray-400">{timeAgo(activity.date)}</p>
+        <p className="text-xs text-gray-400">
+          {formatRelativeTime(activity.date || activity.completedAt, referenceTime)}
+        </p>
       </div>
       {activity.xpEarned && (
         <span className="text-xs font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full shrink-0">
@@ -78,18 +73,39 @@ function ActivityItem({ activity }) {
   );
 }
 
+function InsightCard({ eyebrow, title, description, tone = 'indigo', children }) {
+  const toneClasses = {
+    indigo: 'border-indigo-100 bg-indigo-50',
+    amber: 'border-amber-100 bg-amber-50',
+    emerald: 'border-emerald-100 bg-emerald-50',
+    slate: 'border-gray-100 bg-gray-50',
+  };
+
+  return (
+    <div className={`rounded-3xl border p-5 shadow-sm ${toneClasses[tone]}`}>
+      <p className="text-xs font-semibold uppercase tracking-wide text-gray-400">{eyebrow}</p>
+      <h3 className="text-xl font-bold text-gray-800 mt-2">{title}</h3>
+      <p className="text-sm text-gray-600 mt-2">{description}</p>
+      {children && <div className="mt-4">{children}</div>}
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const { user } = useUser();
   const { modeConfig } = useMode();
+  const {
+    isCanvasConnected,
+    connectCanvasDemo,
+    dashboardSummary,
+    dashboardInsights,
+    todayPlan,
+  } = useLMS();
+  const { openProfessor } = useProfessor();
   const { xp, level, streak, stats, sessionHistory } = useGamification();
   const { decks } = useStudy();
 
-  const [encouragement, setEncouragement] = useState('');
-
-  useEffect(() => {
-    const msg = encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)];
-    setEncouragement(msg);
-  }, []);
+  const [referenceTime] = useState(() => Date.now());
 
   const xpNeeded = xpPerLevel(level);
   const xpProgress = Math.round((xp / xpNeeded) * 100);
@@ -106,6 +122,10 @@ export default function Dashboard() {
   const recentActivity = sessionHistory.slice(-5).reverse();
 
   const firstName = user.name ? user.name.split(' ')[0] : 'Learner';
+  const encouragement = stablePick(
+    encouragingMessages,
+    `${firstName}-${user.gradeLevel}-${level}-${streak.current}`
+  );
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-6 space-y-8">
@@ -159,6 +179,301 @@ export default function Dashboard() {
         />
       </div>
 
+      {isCanvasConnected ? (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <StatCard
+              icon="🎒"
+              label="Synced Courses"
+              value={dashboardSummary.connectedCourses}
+              color="#10b981"
+            />
+            <StatCard
+              icon="🗓️"
+              label="Due Soon"
+              value={dashboardSummary.assignmentsDueSoon}
+              color="#6366f1"
+            />
+            <StatCard
+              icon="📦"
+              label="Study Packs"
+              value={dashboardSummary.readyStudyPacks}
+              color="#8b5cf6"
+            />
+            <StatCard
+              icon="🚨"
+              label="Overdue"
+              value={dashboardSummary.overdueAssignments}
+              color="#ef4444"
+            />
+          </div>
+
+          <div className="grid gap-5 xl:grid-cols-[1.1fr_0.9fr]">
+            {dashboardInsights.nextStep ? (
+              <InsightCard
+                eyebrow="Do This Next"
+                title={dashboardInsights.nextStep.title}
+                description={dashboardInsights.nextStep.reason}
+                tone={dashboardSummary.overdueAssignments > 0 ? 'amber' : 'indigo'}
+              >
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                  <span>{dashboardInsights.nextStep.courseName}</span>
+                  <span>•</span>
+                  <span>{dashboardInsights.nextStep.dueLabel}</span>
+                  <span>•</span>
+                  <span>{dashboardInsights.nextStep.chunkLabel} x {dashboardInsights.nextStep.totalBlocks}</span>
+                </div>
+                <div className="flex flex-wrap gap-3 mt-4">
+                  {dashboardInsights.nextStep.studyPackId && (
+                    <Link
+                      to={`/study-packs/${dashboardInsights.nextStep.studyPackId}`}
+                      className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                    >
+                      Open Pack
+                    </Link>
+                  )}
+                  <Link
+                    to="/planner"
+                    className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-white transition-colors"
+                  >
+                    Open Planner
+                  </Link>
+                  <button
+                    onClick={() =>
+                      openProfessor({
+                        subject:
+                          dashboardInsights.nextStep.courseId ||
+                          dashboardInsights.nextStep.courseName,
+                        prompt: `I need help starting ${dashboardInsights.nextStep.title}. Give me the smallest first step and how to use the next ${dashboardInsights.nextStep.totalBlocks} study blocks well.`,
+                      })
+                    }
+                    className="px-4 py-2 rounded-xl border border-indigo-200 text-indigo-600 hover:bg-white transition-colors"
+                  >
+                    Ask Professor
+                  </button>
+                </div>
+              </InsightCard>
+            ) : (
+              <InsightCard
+                eyebrow="Do This Next"
+                title="Your queue is clear"
+                description="You do not have any open school tasks right now. This is a good time for flashcard review or a short confidence-building study session."
+                tone="emerald"
+              >
+                <div className="flex flex-wrap gap-3 mt-4">
+                  <Link
+                    to="/flashcards"
+                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                  >
+                    Review Flashcards
+                  </Link>
+                  <Link
+                    to="/study"
+                    className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-white transition-colors"
+                  >
+                    Start Study Session
+                  </Link>
+                </div>
+              </InsightCard>
+            )}
+
+            {dashboardInsights.nextExam ? (
+              <InsightCard
+                eyebrow="Exam Countdown"
+                title={dashboardInsights.nextExam.title}
+                description={`Next assessment in ${dashboardInsights.nextExam.courseName}. ${dashboardInsights.nextExam.reviewAvailable ? 'Review is available, so this is a strong time to revisit missed topics.' : 'Build recall now so the review feels lighter later.'}`}
+                tone="amber"
+              >
+                <div className="flex flex-wrap items-center gap-2 text-sm text-gray-500">
+                  <span>{dashboardInsights.nextExam.dueLabel}</span>
+                  <span>•</span>
+                  <span>{formatDateTime(dashboardInsights.nextExam.dueAt)}</span>
+                </div>
+                <div className="flex flex-wrap gap-3 mt-4">
+                  {dashboardInsights.nextExam.studyPackId && (
+                    <Link
+                      to={`/study-packs/${dashboardInsights.nextExam.studyPackId}`}
+                      className="px-4 py-2 rounded-xl bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                    >
+                      Open Exam Pack
+                    </Link>
+                  )}
+                  <Link
+                    to="/courses"
+                    className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-white transition-colors"
+                  >
+                    Open Courses
+                  </Link>
+                  <button
+                    onClick={() =>
+                      openProfessor({
+                        subject:
+                          dashboardInsights.nextExam.courseId ||
+                          dashboardInsights.nextExam.courseName,
+                        prompt: `Help me prep for ${dashboardInsights.nextExam.title}. I want a calm plan for what to review first and what to ignore for now.`,
+                      })
+                    }
+                    className="px-4 py-2 rounded-xl border border-amber-200 text-amber-700 hover:bg-white transition-colors"
+                  >
+                    Ask Professor
+                  </button>
+                </div>
+              </InsightCard>
+            ) : (
+              <InsightCard
+                eyebrow="Exam Countdown"
+                title="No exam pressure right now"
+                description="There are no upcoming quizzes or exams in your synced queue at the moment, so you can focus on regular assignments and staying ahead."
+                tone="slate"
+              />
+            )}
+          </div>
+
+          <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">Recovery Queue</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    The fastest way to reduce stress if work is starting to stack up.
+                  </p>
+                </div>
+                <Link
+                  to="/planner"
+                  className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  Open Planner
+                </Link>
+              </div>
+              <div className="mt-5 space-y-3">
+                {dashboardInsights.recoveryQueue.length > 0 ? (
+                  dashboardInsights.recoveryQueue.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-semibold text-gray-800">{item.title}</p>
+                        <p className="text-sm text-gray-500">
+                          {item.courseName} · {item.dueLabel}
+                        </p>
+                      </div>
+                      {item.studyPackId && (
+                        <Link
+                          to={`/study-packs/${item.studyPackId}`}
+                          className="px-4 py-2 rounded-xl bg-white text-amber-700 border border-amber-200 hover:bg-amber-100 transition-colors text-center"
+                        >
+                          Open Pack
+                        </Link>
+                      )}
+                      <button
+                        onClick={() =>
+                          openProfessor({
+                            subject: item.courseId || item.courseName,
+                            prompt: `Help me recover ${item.title} without getting overwhelmed. Give me a short catch-up plan I can start right now.`,
+                          })
+                        }
+                        className="px-4 py-2 rounded-xl border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors text-center"
+                      >
+                        Ask Professor
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl bg-emerald-50 border border-emerald-100 px-4 py-4">
+                    <p className="font-semibold text-emerald-800">Nothing overdue</p>
+                    <p className="text-sm text-emerald-700 mt-1">
+                      You are caught up right now. Keep using the planner to stay ahead.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">Quick Wins</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Smaller tasks that fit your current focus setting and build momentum fast.
+                  </p>
+                </div>
+                <span className="text-xs font-semibold px-3 py-1 rounded-full bg-indigo-50 text-indigo-600">
+                  {modeConfig.label} mode
+                </span>
+              </div>
+              <div className="mt-5 space-y-3">
+                {dashboardInsights.quickWins.length > 0 ? (
+                  dashboardInsights.quickWins.map((item) => (
+                    <div
+                      key={item.id}
+                      className="rounded-2xl bg-gray-50 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p className="font-semibold text-gray-800">{item.title}</p>
+                        <p className="text-sm text-gray-500">
+                          {item.courseName} · {item.dueLabel}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {item.studyPackId && (
+                          <Link
+                            to={`/study-packs/${item.studyPackId}`}
+                            className="px-3 py-2 rounded-xl border border-indigo-200 text-indigo-600 hover:bg-white transition-colors text-sm"
+                          >
+                            Open Pack
+                          </Link>
+                        )}
+                        <Link
+                          to="/study"
+                          className="px-3 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors text-sm"
+                        >
+                          Start Session
+                        </Link>
+                        <button
+                          onClick={() =>
+                            openProfessor({
+                              subject: item.courseId || item.courseName,
+                              prompt: `I have a quick-win task: ${item.title}. Help me finish it in one focused session.`,
+                            })
+                          }
+                          className="px-3 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-white transition-colors text-sm"
+                        >
+                          Ask Professor
+                        </button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="rounded-2xl bg-gray-50 border border-gray-100 px-4 py-4">
+                    <p className="font-semibold text-gray-800">No quick wins detected yet</p>
+                    <p className="text-sm text-gray-500 mt-1">
+                      Your current tasks are a bit larger, so opening the planner or a study pack is the best next move.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className="rounded-3xl border border-indigo-100 bg-indigo-50 p-6 flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-indigo-900">Add your school workflow</h2>
+            <p className="text-indigo-700 mt-1 max-w-2xl">
+              Connect Canvas-style course data so MuteLearn can build adaptive planners,
+              exam countdowns, and class-specific study packs.
+            </p>
+          </div>
+          <button
+            onClick={connectCanvasDemo}
+            className="px-5 py-3 rounded-xl bg-indigo-600 text-white font-medium hover:bg-indigo-700 transition-colors self-start"
+          >
+            Connect Canvas Demo
+          </button>
+        </div>
+      )}
+
       {/* XP Progress Bar */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
         <div className="flex items-center justify-between mb-2">
@@ -180,13 +495,27 @@ export default function Dashboard() {
       {/* Quick Actions */}
       <div>
         <h2 className="text-xl font-bold text-gray-800 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
           <QuickAction
             to="/study"
             icon="📖"
             label="Study Session"
             description="Start a focused study session"
             color="#8b5cf6"
+          />
+          <QuickAction
+            to="/planner"
+            icon="🗓️"
+            label="Planner"
+            description="See today&apos;s adaptive task list"
+            color="#6366f1"
+          />
+          <QuickAction
+            to="/courses"
+            icon="🎒"
+            label="Courses"
+            description="Open synced classes and materials"
+            color="#10b981"
           />
           <QuickAction
             to="/flashcards"
@@ -196,21 +525,68 @@ export default function Dashboard() {
             color="#3b82f6"
           />
           <QuickAction
-            to="/quiz"
+            to="/quizzes"
             icon="📝"
             label="Take a Quiz"
             description="Test your knowledge"
             color="#10b981"
           />
           <QuickAction
-            to="/games"
-            icon="🎮"
-            label="Play Games"
-            description="Learn through fun games"
+            to="/study-packs"
+            icon="📦"
+            label="Study Packs"
+            description="Turn assignments into prep bundles"
             color="#f59e0b"
           />
         </div>
       </div>
+
+      {isCanvasConnected && (
+        <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+          <div className="flex items-center justify-between gap-4 mb-4">
+            <div>
+              <h2 className="text-xl font-bold text-gray-800">Today&apos;s Adaptive Plan</h2>
+              <p className="text-sm text-gray-500 mt-1">
+                Built from your synced coursework and {modeConfig.label.toLowerCase()} mode.
+              </p>
+            </div>
+            <Link
+              to="/planner"
+              className="text-sm font-medium text-indigo-600 hover:text-indigo-700"
+            >
+              Open Planner
+            </Link>
+          </div>
+          <div className="space-y-3">
+            {todayPlan.slice(0, 3).map((task) => (
+              <div
+                key={task.id}
+                className="rounded-2xl bg-gray-50 px-4 py-3 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div>
+                  <p className="font-semibold text-gray-800">{task.title}</p>
+                  <p className="text-sm text-gray-500">
+                    {task.courseName} · {task.dueLabel}
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {task.studyPackId && (
+                    <Link
+                      to={`/study-packs/${task.studyPackId}`}
+                      className="text-xs font-semibold px-2.5 py-1 rounded-full bg-indigo-50 text-indigo-600 border border-indigo-100 hover:bg-indigo-100 transition-colors"
+                    >
+                      Open Pack
+                    </Link>
+                  )}
+                  <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-indigo-600 border border-indigo-100">
+                    {task.chunkLabel} x {task.totalBlocks}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Recent Activity */}
       <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
@@ -218,7 +594,11 @@ export default function Dashboard() {
         {recentActivity.length > 0 ? (
           <div className="divide-y divide-gray-50">
             {recentActivity.map((activity, i) => (
-              <ActivityItem key={activity.date + i} activity={activity} />
+              <ActivityItem
+                key={(activity.date || activity.completedAt || i) + i}
+                activity={activity}
+                referenceTime={referenceTime}
+              />
             ))}
           </div>
         ) : (

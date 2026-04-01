@@ -3,8 +3,16 @@ import { useProfessor } from '../../contexts/ProfessorContext';
 import ProfessorMessage from './ProfessorMessage';
 
 export default function ProfessorChat({ isOpen, onClose }) {
-  const { history, isLoading, sendMessage, clearHistory } = useProfessor();
-  const [input, setInput] = useState('');
+  const {
+    history,
+    isLoading,
+    sendMessage,
+    clearHistory,
+    currentContextLabel,
+    draftMessage,
+    setDraftMessage,
+    promptSuggestions,
+  } = useProfessor();
   const [isClosing, setIsClosing] = useState(false);
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -30,15 +38,15 @@ export default function ProfessorChat({ isOpen, onClose }) {
   }, [onClose]);
 
   const handleSend = useCallback(() => {
-    const trimmed = input.trim();
+    const trimmed = draftMessage.trim();
     if (!trimmed || isLoading) return;
     sendMessage(trimmed);
-    setInput('');
+    setDraftMessage('');
     // Reset textarea height
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
     }
-  }, [input, isLoading, sendMessage]);
+  }, [draftMessage, isLoading, sendMessage, setDraftMessage]);
 
   const handleKeyDown = useCallback(
     (e) => {
@@ -51,7 +59,7 @@ export default function ProfessorChat({ isOpen, onClose }) {
   );
 
   const handleInputChange = (e) => {
-    setInput(e.target.value);
+    setDraftMessage(e.target.value);
     // Auto-resize textarea
     const el = e.target;
     el.style.height = 'auto';
@@ -89,7 +97,9 @@ export default function ProfessorChat({ isOpen, onClose }) {
               <h2 className="text-base font-semibold text-[var(--text-primary)] leading-tight">
                 Professor
               </h2>
-              <p className="text-xs text-[var(--text-secondary)]">Your study buddy</p>
+              <p className="text-xs text-[var(--text-secondary)]">
+                {currentContextLabel ? `Focused on ${currentContextLabel}` : 'Your study buddy'}
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -112,6 +122,24 @@ export default function ProfessorChat({ isOpen, onClose }) {
 
         {/* Messages */}
         <div className="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+          {promptSuggestions.length > 0 && history.length <= 1 && (
+            <div className="mb-4">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[var(--text-secondary)] mb-2 px-1">
+                Suggested prompts
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {promptSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    onClick={() => setDraftMessage(suggestion)}
+                    className="text-left rounded-full border border-[var(--border)] bg-[var(--bg-card)] px-3 py-2 text-xs text-[var(--text-primary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           {history.map((msg, i) => (
             <ProfessorMessage key={`${msg.timestamp}-${i}`} message={msg} />
           ))}
@@ -124,7 +152,7 @@ export default function ProfessorChat({ isOpen, onClose }) {
           <div className="flex items-end gap-2">
             <textarea
               ref={textareaRef}
-              value={input}
+              value={draftMessage}
               onChange={handleInputChange}
               onKeyDown={handleKeyDown}
               placeholder="Ask Professor anything..."
@@ -135,7 +163,7 @@ export default function ProfessorChat({ isOpen, onClose }) {
             />
             <button
               onClick={handleSend}
-              disabled={!input.trim() || isLoading}
+              disabled={!draftMessage.trim() || isLoading}
               className="flex-shrink-0 w-10 h-10 rounded-xl bg-[var(--accent)] text-white flex items-center justify-center hover:opacity-90 active:opacity-80 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
               aria-label="Send message"
             >

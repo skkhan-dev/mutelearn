@@ -14,14 +14,41 @@ export const getSystemPrompt = ({ mode, gradeLevel, studyContext }) => {
 
   let contextSection = '';
   if (studyContext) {
-    const { recentScores, weakAreas, currentSubject, currentDeck } = studyContext;
+    const {
+      recentScores,
+      weakAreas,
+      currentSubject,
+      currentAssignment,
+      currentPack,
+      currentCourseCode,
+      currentDeck,
+      relatedMaterials,
+      checklistProgress,
+      focusReflection,
+      upcomingDeadlines,
+    } = studyContext;
     if (currentSubject) contextSection += `\nThe student is currently studying: ${currentSubject}`;
+    if (currentCourseCode) contextSection += `\nCurrent course code: ${currentCourseCode}`;
+    if (currentAssignment) contextSection += `\nCurrent assignment or assessment: ${currentAssignment}`;
+    if (currentPack) contextSection += `\nThey are inside the study pack: "${currentPack}"`;
     if (currentDeck) contextSection += `\nThey are working on a flashcard deck called: "${currentDeck}"`;
+    if (relatedMaterials && relatedMaterials.length > 0) {
+      contextSection += `\nRelevant course materials: ${relatedMaterials.join(', ')}`;
+    }
+    if (checklistProgress) {
+      contextSection += `\nStudy pack checklist progress: ${checklistProgress}`;
+    }
+    if (focusReflection) {
+      contextSection += `\nStudent note about what still feels confusing: ${focusReflection}`;
+    }
     if (recentScores && recentScores.length > 0) {
-      contextSection += `\nRecent quiz scores: ${recentScores.map(s => `${s.name}: ${s.score}%`).join(', ')}`;
+      contextSection += `\nRecent quiz scores: ${recentScores.map((s) => `${s.name}: ${s.score}%`).join(', ')}`;
     }
     if (weakAreas && weakAreas.length > 0) {
       contextSection += `\nAreas they need more practice: ${weakAreas.join(', ')}`;
+    }
+    if (upcomingDeadlines && upcomingDeadlines.length > 0) {
+      contextSection += `\nUpcoming deadlines: ${upcomingDeadlines.join(', ')}`;
     }
   }
 
