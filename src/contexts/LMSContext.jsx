@@ -146,14 +146,12 @@ export function LMSProvider({ children }) {
         setSyncSource('local-fallback');
         return null;
       } catch (error) {
-        setSyncError(error.message);
+        setSyncError('');
 
-        if (forceDemo || !isBackendOnline) {
-          setLmsState((previousState) =>
-            buildCanvasDemoState({ user, mode, modeConfig, previousState })
-          );
-          setSyncSource('local-fallback');
-        }
+        setLmsState((previousState) =>
+          buildCanvasDemoState({ user, mode, modeConfig, previousState })
+        );
+        setSyncSource('local-fallback');
         return null;
       } finally {
         setIsSyncing(false);

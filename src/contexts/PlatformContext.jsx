@@ -18,6 +18,9 @@ export function PlatformProvider({ children }) {
   const refreshHealth = useCallback(async () => {
     try {
       const payload = await apiClient.getHealth();
+      if (!payload || typeof payload !== 'object' || !payload.status) {
+        throw new Error('Invalid health response');
+      }
       setBackendStatus('online');
       setBackendInfo(payload);
       setError('');
@@ -25,7 +28,7 @@ export function PlatformProvider({ children }) {
     } catch (healthError) {
       setBackendStatus('offline');
       setBackendInfo(null);
-      setError(healthError.message);
+      setError('');
       return null;
     }
   }, []);

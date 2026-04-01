@@ -78,7 +78,7 @@ function CourseCard({ course, assignments, files, studyPacks, onOpenCourse, onOp
             <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold">
               Study packs
             </p>
-            <p className="mt-2 font-semibold text-gray-800">{studyPacks.length} packs</p>
+            <p className="mt-2 font-semibold text-gray-800">{studyPacks.length} {studyPacks.length === 1 ? 'pack' : 'packs'}</p>
             <p className="text-sm text-gray-500">Adaptive prep bundles ready to open</p>
           </div>
         </div>
