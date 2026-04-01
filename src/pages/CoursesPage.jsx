@@ -214,7 +214,7 @@ export default function CoursesPage() {
                 onClick={syncCanvas}
                 className="px-5 py-3 rounded-xl font-medium bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
               >
-                Sync Canvas
+                {isSyncing ? 'Syncing…' : 'Refresh Data'}
               </button>
               <button
                 onClick={() => disconnectConnector('canvas')}

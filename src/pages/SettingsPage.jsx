@@ -161,82 +161,72 @@ export default function SettingsPage() {
         </div>
       </SettingSection>
 
-      <SettingSection
-        title="Backend Session"
-        description="Local API scaffolding for auth, connector status, and future production sync jobs."
-      >
-        <div className="space-y-4">
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <p className="font-semibold text-gray-800">API status</p>
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                      backendStatus === 'online'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : backendStatus === 'checking'
-                        ? 'bg-amber-50 text-amber-700'
-                        : 'bg-gray-200 text-gray-600'
-                    }`}
-                  >
-                    {backendStatus}
-                  </span>
+      {backendStatus === 'online' && (
+        <SettingSection
+          title="Backend Session"
+          description="Local API scaffolding for auth, connector status, and future production sync jobs."
+        >
+          <div className="space-y-4">
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-gray-800">API status</p>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700">
+                      online
+                    </span>
+                  </div>
+                  {backendInfo && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Last seen {formatDateTime(backendInfo.serverTime)}
+                    </p>
+                  )}
                 </div>
-                {backendInfo && (
-                  <p className="text-sm text-gray-500 mt-1">
-                    Last seen {formatDateTime(backendInfo.serverTime)}
-                  </p>
-                )}
-                {platformError && (
-                  <p className="text-sm text-amber-700 mt-2">{platformError}</p>
-                )}
+                <button
+                  onClick={refreshHealth}
+                  className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+                >
+                  Refresh API
+                </button>
               </div>
-              <button
-                onClick={refreshHealth}
-                className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
-              >
-                Refresh API
-              </button>
             </div>
-          </div>
 
-          <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div>
-                <p className="font-semibold text-gray-800">Dev session</p>
-                {session ? (
-                  <p className="text-sm text-gray-500 mt-1">
-                    Signed in as {session.user.name} ({session.user.gradeLevel})
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-500 mt-1">
-                    No backend session yet. Demo login unlocks server-backed connector state.
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {!session ? (
-                  <button
-                    onClick={handleDevLogin}
-                    className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-                    disabled={backendStatus !== 'online'}
-                  >
-                    Create Dev Session
-                  </button>
-                ) : (
-                  <button
-                    onClick={logout}
-                    className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
-                  >
-                    Sign Out
-                  </button>
-                )}
+            <div className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div>
+                  <p className="font-semibold text-gray-800">Dev session</p>
+                  {session ? (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Signed in as {session.user.name} ({session.user.gradeLevel})
+                    </p>
+                  ) : (
+                    <p className="text-sm text-gray-500 mt-1">
+                      No backend session yet. Demo login unlocks server-backed connector state.
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-3">
+                  {!session ? (
+                    <button
+                      onClick={handleDevLogin}
+                      className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                    >
+                      Create Dev Session
+                    </button>
+                  ) : (
+                    <button
+                      onClick={logout}
+                      className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
+                    >
+                      Sign Out
+                    </button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </SettingSection>
+        </SettingSection>
+      )}
 
       <SettingSection
         title="LMS Integration"
@@ -316,7 +306,7 @@ export default function SettingsPage() {
                         onClick={handleCanvasSync}
                         className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
                       >
-                        {isSyncing ? 'Syncing…' : 'Sync Canvas'}
+                        {isSyncing ? 'Syncing…' : canvasConnector?.connectionMode === 'demo' ? 'Refresh Demo Data' : 'Sync Canvas'}
                       </button>
                       <button
                         onClick={() => disconnectConnector('canvas')}
@@ -326,7 +316,7 @@ export default function SettingsPage() {
                       </button>
                     </>
                   )}
-                  {connector.id === 'canvas' && (
+                  {connector.id === 'canvas' && !isCanvasConnected && (
                     <button
                       onClick={connectCanvasDemo}
                       className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
@@ -349,56 +339,58 @@ export default function SettingsPage() {
         </div>
       </SettingSection>
 
-      <SettingSection
-        title="Recent Sync Activity"
-        description="A lightweight activity log for connector runs so local backend work is easier to verify."
-      >
-        <div className="space-y-3">
-          {syncJobs.length > 0 ? (
-            syncJobs.map((job) => (
-              <div
-                key={job.id}
-                className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div>
-                    <p className="font-semibold text-gray-800">
-                      {job.connectorId} sync · {job.source}
-                    </p>
-                    <p className="text-sm text-gray-500 mt-1">
-                      {job.startedAt
-                        ? `Started ${formatDateTime(job.startedAt)}`
-                        : `Queued ${formatDateTime(job.queuedAt)}`}
-                      {job.finishedAt ? ` · Finished ${formatDateTime(job.finishedAt)}` : ''}
-                    </p>
-                    {job.summary && (
-                      <p className="text-sm text-gray-600 mt-2">{job.summary}</p>
-                    )}
-                    {job.error && (
-                      <p className="text-sm text-amber-700 mt-2">{job.error}</p>
-                    )}
+      {backendStatus === 'online' && (
+        <SettingSection
+          title="Recent Sync Activity"
+          description="A lightweight activity log for connector runs so local backend work is easier to verify."
+        >
+          <div className="space-y-3">
+            {syncJobs.length > 0 ? (
+              syncJobs.map((job) => (
+                <div
+                  key={job.id}
+                  className="rounded-2xl border border-gray-100 bg-gray-50 px-5 py-4"
+                >
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        {job.connectorId} sync · {job.source}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-1">
+                        {job.startedAt
+                          ? `Started ${formatDateTime(job.startedAt)}`
+                          : `Queued ${formatDateTime(job.queuedAt)}`}
+                        {job.finishedAt ? ` · Finished ${formatDateTime(job.finishedAt)}` : ''}
+                      </p>
+                      {job.summary && (
+                        <p className="text-sm text-gray-600 mt-2">{job.summary}</p>
+                      )}
+                      {job.error && (
+                        <p className="text-sm text-amber-700 mt-2">{job.error}</p>
+                      )}
+                    </div>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        job.status === 'completed'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : job.status === 'failed'
+                          ? 'bg-amber-50 text-amber-700'
+                          : 'bg-indigo-50 text-indigo-700'
+                      }`}
+                    >
+                      {job.status}
+                    </span>
                   </div>
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      job.status === 'completed'
-                        ? 'bg-emerald-50 text-emerald-700'
-                        : job.status === 'failed'
-                        ? 'bg-amber-50 text-amber-700'
-                        : 'bg-indigo-50 text-indigo-700'
-                    }`}
-                  >
-                    {job.status}
-                  </span>
                 </div>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm text-gray-500">
-              No connector jobs yet. Run a demo sync or a live Canvas sync to populate this log.
-            </p>
-          )}
-        </div>
-      </SettingSection>
+              ))
+            ) : (
+              <p className="text-sm text-gray-500">
+                No connector jobs yet. Run a demo sync or a live Canvas sync to populate this log.
+              </p>
+            )}
+          </div>
+        </SettingSection>
+      )}
 
       {/* User Profile */}
       <SettingSection
