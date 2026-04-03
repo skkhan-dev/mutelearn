@@ -29,6 +29,9 @@ export default function SettingsPage() {
     syncSource,
     syncError,
     activeSyncJobId,
+    canvasCredentials,
+    saveCanvasCredentials,
+    clearCanvasCredentials,
     syncCanvas,
     connectCanvasDemo,
     disconnectConnector,
@@ -77,23 +80,27 @@ export default function SettingsPage() {
           'x-canvas-token': canvasToken.trim(),
         },
       });
-      if (!res.ok) throw new Error('Invalid Canvas URL or token');
+      if (!res.ok) throw new Error('Invalid Canvas URL or token. Check both values and try again.');
       const profile = await res.json();
-      setCanvasAccountName(profile.name || profile.login_id || 'Connected');
+      const accountName = profile.name || profile.login_id || 'Connected';
+      setCanvasAccountName(accountName);
 
-      // Save to Firestore
+      // Save credentials so sync uses real Canvas data
+      saveCanvasCredentials(fullUrl, canvasToken.trim(), accountName);
+
+      // Save to Firestore for cross-device persistence
       if (firebaseUser) {
         await setDoc(doc(db, 'users', firebaseUser.uid), {
           canvas: {
             baseUrl: fullUrl,
-            accountName: profile.name || '',
+            accountName,
             canvasUserId: String(profile.id || ''),
             connectedAt: new Date().toISOString(),
           },
         }, { merge: true });
       }
 
-      // Trigger a Canvas sync with real data
+      // Trigger a real Canvas sync
       await syncCanvas();
     } catch (err) {
       setCanvasConnectError(err.message || 'Could not connect to Canvas');
@@ -103,6 +110,7 @@ export default function SettingsPage() {
   };
 
   const handleCanvasDisconnect = async () => {
+    clearCanvasCredentials();
     disconnectConnector('canvas');
     setCanvasAccountName('');
     setCanvasUrl('');
@@ -260,7 +268,7 @@ export default function SettingsPage() {
         description="Connect your school's Canvas to pull courses, assignments, and grades into MuteLearn"
       >
         <div className="space-y-4">
-          {canvasAccountName || isCanvasConnected ? (
+          {canvasCredentials?.baseUrl || canvasAccountName || isCanvasConnected ? (
             <div className="rounded-2xl border border-emerald-100 bg-emerald-50 px-5 py-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div>
@@ -270,8 +278,11 @@ export default function SettingsPage() {
                       active
                     </span>
                   </div>
-                  {canvasAccountName && (
-                    <p className="text-sm text-gray-500 mt-1">Account: {canvasAccountName}</p>
+                  {(canvasAccountName || canvasCredentials?.accountName) && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Account: {canvasAccountName || canvasCredentials?.accountName}
+                      {canvasCredentials?.baseUrl && ` (${canvasCredentials.baseUrl.replace('https://', '')})`}
+                    </p>
                   )}
                 </div>
                 <div className="flex flex-wrap gap-3">

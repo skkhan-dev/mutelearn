@@ -4,6 +4,7 @@ import { useMode } from './ModeContext';
 import { useUser } from './UserContext';
 import { usePlatform } from './PlatformContext';
 import { buildCanvasDemoState } from '../data/lmsDemoData';
+import { fetchRealCanvasData } from '../lib/canvasSync';
 import { buildDueLabel, daysUntil, isOverdue, sortByDate } from '../lib/dateUtils';
 import { apiClient } from '../lib/apiClient';
 
@@ -39,6 +40,7 @@ export function LMSProvider({ children }) {
   const { mode, modeConfig } = useMode();
   const { isBackendOnline, sessionToken, refreshConnectors, refreshJobs } = usePlatform();
   const [lmsState, setLmsState] = useLocalStorage('mutelearn-lms-state', INITIAL_STATE);
+  const [canvasCredentials, setCanvasCredentials] = useLocalStorage('mutelearn-canvas-credentials', null);
   const [isSyncing, setIsSyncing] = useState(false);
   const [syncSource, setSyncSource] = useState('local');
   const [syncError, setSyncError] = useState('');
@@ -96,6 +98,14 @@ export function LMSProvider({ children }) {
     [hydrateCanvasState, refreshConnectors, refreshJobs, sessionToken]
   );
 
+  const saveCanvasCredentials = useCallback((baseUrl, token, accountName) => {
+    setCanvasCredentials({ baseUrl, token, accountName });
+  }, [setCanvasCredentials]);
+
+  const clearCanvasCredentials = useCallback(() => {
+    setCanvasCredentials(null);
+  }, [setCanvasCredentials]);
+
   const syncCanvas = useCallback(({ forceDemo = false } = {}) => {
     return (async () => {
       setIsSyncing(true);
@@ -103,51 +113,30 @@ export function LMSProvider({ children }) {
       setActiveSyncJobId('');
 
       try {
-        if (isBackendOnline) {
-          if (forceDemo) {
-            const payload = await apiClient.syncCanvasDemo({
-              sessionToken: sessionToken || undefined,
-              body: { user, mode, modeConfig, previousState: lmsState },
-            });
-            setLmsState(payload.lmsState);
-            setSyncSource(payload.source || 'server-demo');
-            await refreshConnectors();
-            await refreshJobs();
-            return payload;
-          }
-
-          if (!sessionToken) {
-            const payload = await apiClient.syncCanvas({
-              sessionToken: undefined,
-              body: { user, mode, modeConfig, previousState: lmsState },
-            });
-            setLmsState(payload.lmsState);
-            setSyncSource(payload.source || 'server-demo');
-            await refreshConnectors();
-            await refreshJobs();
-            return payload;
-          }
-
-          const queuePayload = await apiClient.queueCanvasSync({
-            sessionToken: sessionToken || undefined,
-            body: { user, mode, modeConfig, previousState: lmsState },
+        // If we have real Canvas credentials AND not forcing demo, fetch real data
+        if (!forceDemo && canvasCredentials?.baseUrl && canvasCredentials?.token) {
+          const realState = await fetchRealCanvasData({
+            canvasBaseUrl: canvasCredentials.baseUrl,
+            canvasToken: canvasCredentials.token,
+            mode,
+            modeConfig,
+            previousState: lmsState,
           });
-          const queuedJobId = queuePayload.job?.id || '';
-          setActiveSyncJobId(queuedJobId);
-          setSyncSource(queuePayload.job?.source || 'background-queued');
-          await refreshJobs();
-          const completedJob = await pollCanvasSyncJob(queuedJobId);
-          return completedJob;
+          setLmsState(realState);
+          setSyncSource('canvas-live');
+          return realState;
         }
 
+        // Demo mode fallback
         setLmsState((previousState) =>
           buildCanvasDemoState({ user, mode, modeConfig, previousState })
         );
-        setSyncSource('local-fallback');
+        setSyncSource(forceDemo ? 'demo' : 'local-fallback');
         return null;
       } catch (error) {
-        setSyncError('');
+        setSyncError(error.message || 'Canvas sync failed');
 
+        // If real sync fails, fall back to demo
         setLmsState((previousState) =>
           buildCanvasDemoState({ user, mode, modeConfig, previousState })
         );
@@ -159,14 +148,10 @@ export function LMSProvider({ children }) {
       }
     })();
   }, [
-    isBackendOnline,
+    canvasCredentials,
     lmsState,
     mode,
     modeConfig,
-    pollCanvasSyncJob,
-    refreshConnectors,
-    refreshJobs,
-    sessionToken,
     setLmsState,
     user,
   ]);
@@ -537,6 +522,9 @@ export function LMSProvider({ children }) {
         syncSource,
         syncError,
         activeSyncJobId,
+        canvasCredentials,
+        saveCanvasCredentials,
+        clearCanvasCredentials,
         syncCanvas,
         connectCanvasDemo,
         syncCanvasDemo,
