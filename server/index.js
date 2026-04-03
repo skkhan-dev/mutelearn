@@ -1360,7 +1360,7 @@ const server = http.createServer(async (request, response) => {
 
   // Canvas proxy — forwards requests to a student's Canvas instance using their token
   // Used when students connect via Personal Access Token (no OAuth needed)
-  if (pathname.startsWith('/api/canvas-proxy/')) {
+  if (url.pathname.startsWith('/api/canvas-proxy/')) {
     const canvasBaseUrl = request.headers['x-canvas-base-url'] || '';
     const canvasTokenHeader = request.headers['x-canvas-token'] || '';
 
@@ -1369,8 +1369,8 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
-    const canvasPath = pathname.replace('/api/canvas-proxy/', '');
-    const canvasUrl = `${canvasBaseUrl}/api/v1/${canvasPath}${searchString}`;
+    const canvasPath = url.pathname.replace('/api/canvas-proxy/', '');
+    const canvasUrl = `${canvasBaseUrl}/api/v1/${canvasPath}${url.search}`;
 
     try {
       const canvasResponse = await fetch(canvasUrl, {
