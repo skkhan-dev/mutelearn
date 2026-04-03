@@ -16,6 +16,7 @@ import GamesPage from './pages/GamesPage';
 import ProgressPage from './pages/ProgressPage';
 import SettingsPage from './pages/SettingsPage';
 import OnboardingPage from './pages/OnboardingPage';
+import LoginPage from './pages/LoginPage';
 import CoursesPage from './pages/CoursesPage';
 import CourseDetailPage from './pages/CourseDetailPage';
 import PlannerPage from './pages/PlannerPage';
@@ -28,9 +29,32 @@ import IdleNudge from './components/accessibility/IdleNudge';
 import { useProfessor } from './contexts/ProfessorContext';
 
 function AppRoutes() {
-  const { user } = useUser();
+  const { user, authLoading, isSignedIn } = useUser();
   const { isOpen: professorOpen, openProfessor, closeProfessor, promptSuggestions } = useProfessor();
 
+  // Loading Firebase auth state
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+        <div className="text-center">
+          <div className="text-5xl mb-4 animate-bounce">📚</div>
+          <p className="text-gray-500 font-medium">Loading MuteLearn...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Not signed in → Login page
+  if (!isSignedIn) {
+    return (
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
+      </Routes>
+    );
+  }
+
+  // Signed in but hasn't completed onboarding
   if (!user.hasOnboarded) {
     return (
       <Routes>
@@ -60,6 +84,7 @@ function AppRoutes() {
           <Route path="/progress" element={<ProgressPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Route>
+        <Route path="/login" element={<Navigate to="/dashboard" replace />} />
         <Route path="/onboarding" element={<Navigate to="/dashboard" replace />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
       </Routes>

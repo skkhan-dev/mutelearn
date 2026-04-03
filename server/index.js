@@ -47,7 +47,7 @@ function sendJson(response, statusCode, payload) {
   response.writeHead(statusCode, {
     'Content-Type': 'application/json',
     'Access-Control-Allow-Origin': APP_ORIGIN,
-    'Access-Control-Allow-Headers': 'Content-Type, x-mutelearn-session',
+    'Access-Control-Allow-Headers': 'Content-Type, x-mutelearn-session, x-canvas-base-url, x-canvas-token',
     'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   });
   response.end(JSON.stringify(payload));
@@ -952,7 +952,7 @@ const server = http.createServer(async (request, response) => {
   if (request.method === 'OPTIONS') {
     response.writeHead(204, {
       'Access-Control-Allow-Origin': APP_ORIGIN,
-      'Access-Control-Allow-Headers': 'Content-Type, x-mutelearn-session',
+      'Access-Control-Allow-Headers': 'Content-Type, x-mutelearn-session, x-canvas-base-url, x-canvas-token',
       'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
     });
     response.end();
@@ -1354,6 +1354,46 @@ const server = http.createServer(async (request, response) => {
           success: false,
         })
       );
+    }
+    return;
+  }
+
+  // Canvas proxy — forwards requests to a student's Canvas instance using their token
+  // Used when students connect via Personal Access Token (no OAuth needed)
+  if (pathname.startsWith('/api/canvas-proxy/')) {
+    const canvasBaseUrl = request.headers['x-canvas-base-url'] || '';
+    const canvasTokenHeader = request.headers['x-canvas-token'] || '';
+
+    if (!canvasBaseUrl || !canvasTokenHeader) {
+      sendJson(response, 400, { error: 'Missing x-canvas-base-url or x-canvas-token headers' });
+      return;
+    }
+
+    const canvasPath = pathname.replace('/api/canvas-proxy/', '');
+    const canvasUrl = `${canvasBaseUrl}/api/v1/${canvasPath}${searchString}`;
+
+    try {
+      const canvasResponse = await fetch(canvasUrl, {
+        method: request.method,
+        headers: {
+          Authorization: `Bearer ${canvasTokenHeader}`,
+          Accept: 'application/json',
+        },
+      });
+
+      const contentType = canvasResponse.headers.get('content-type') || '';
+      const body = contentType.includes('application/json')
+        ? await canvasResponse.json()
+        : await canvasResponse.text();
+
+      response.writeHead(canvasResponse.status, {
+        'Content-Type': contentType.includes('application/json') ? 'application/json' : 'text/plain',
+        'Access-Control-Allow-Origin': APP_ORIGIN,
+        'Access-Control-Allow-Headers': 'Content-Type, x-canvas-base-url, x-canvas-token',
+      });
+      response.end(typeof body === 'string' ? body : JSON.stringify(body));
+    } catch (proxyError) {
+      sendJson(response, 502, { error: `Canvas unreachable: ${proxyError.message}` });
     }
     return;
   }
