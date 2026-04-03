@@ -15,8 +15,13 @@ COPY --from=build /app/src/lib/textUtils.js ./src/lib/textUtils.js
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/package.json ./package.json
 COPY nginx.conf /etc/nginx/http.d/default.conf
+RUN rm -f /etc/nginx/conf.d/default.conf
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 RUN mkdir -p /app/server/data
+
+ENV MUTELEARN_APP_URL=*
+ENV MUTELEARN_SERVER_PORT=8787
+
 EXPOSE 8080
 CMD ["/entrypoint.sh"]

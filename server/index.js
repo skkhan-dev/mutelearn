@@ -7,7 +7,7 @@ import { createPersistentStateStore } from './stateStore.js';
 
 const PORT = Number(process.env.MUTELEARN_SERVER_PORT || 8787);
 const APP_URL = process.env.MUTELEARN_APP_URL || 'http://localhost:5173';
-const APP_ORIGIN = new URL(APP_URL).origin;
+const APP_ORIGIN = APP_URL === '*' ? '*' : new URL(APP_URL).origin;
 const CANVAS_BASE_URL = (process.env.CANVAS_BASE_URL || '').replace(/\/+$/, '');
 const CANVAS_CLIENT_ID = process.env.CANVAS_CLIENT_ID || '';
 const CANVAS_CLIENT_SECRET = process.env.CANVAS_CLIENT_SECRET || '';
