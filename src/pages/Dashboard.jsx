@@ -100,6 +100,7 @@ export default function Dashboard() {
     dashboardSummary,
     dashboardInsights,
     todayPlan,
+    completedThisWeek,
   } = useLMS();
   const { openProfessor } = useProfessor();
   const { xp, level, streak, stats, sessionHistory } = useGamification();
@@ -201,10 +202,10 @@ export default function Dashboard() {
               color="#8b5cf6"
             />
             <StatCard
-              icon="🚨"
-              label="Overdue"
-              value={dashboardSummary.overdueAssignments}
-              color="#ef4444"
+              icon="🎉"
+              label="Done This Week"
+              value={completedThisWeek.length}
+              color="#10b981"
             />
           </div>
 

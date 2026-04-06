@@ -1,7 +1,11 @@
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLMS } from '../contexts/LMSContext';
+import { useGamification } from '../contexts/GamificationContext';
 import { useMode } from '../contexts/ModeContext';
 import { buildDueLabel, formatDateTime } from '../lib/dateUtils';
+
+const XP_BY_TYPE = { exam: 50, quiz: 35, assignment: 25, reading: 15 };
 
 function SummaryCard({ label, value, detail, color }) {
   return (
@@ -24,9 +28,21 @@ export default function PlannerPage() {
     overdueAssignments,
     upcomingExams,
     studyPacks,
+    completedThisWeek,
     updateAssignmentStatus,
+    completeAssignment,
   } = useLMS();
+  const { addXP } = useGamification();
   const { modeConfig } = useMode();
+  const [completedToast, setCompletedToast] = useState(null);
+
+  const handleComplete = (task) => {
+    const assignment = completeAssignment(task.assignmentId);
+    const xp = XP_BY_TYPE[assignment?.type] || 25;
+    addXP(xp, `Completed: ${task.title}`);
+    setCompletedToast({ title: task.title, xp });
+    setTimeout(() => setCompletedToast(null), 3000);
+  };
 
   if (!isCanvasConnected) {
     return (
@@ -74,16 +90,16 @@ export default function PlannerPage() {
           color="#ef4444"
         />
         <SummaryCard
-          label="Upcoming exams"
-          value={upcomingExams.length}
-          detail="Use study packs before these pile up"
-          color="#f59e0b"
+          label="Completed this week"
+          value={completedThisWeek.length}
+          detail="Assignments you finished"
+          color="#10b981"
         />
         <SummaryCard
           label="Study packs"
           value={studyPacks.length}
           detail="Ready from synced coursework"
-          color="#10b981"
+          color="#f59e0b"
         />
       </div>
 
@@ -140,22 +156,33 @@ export default function PlannerPage() {
                     onClick={() => updateAssignmentStatus(task.assignmentId, 'in_progress')}
                     className="px-4 py-2 rounded-xl border border-gray-200 text-gray-600 hover:bg-white transition-colors"
                   >
-                    Mark In Progress
+                    In Progress
                   </button>
                   <button
-                    onClick={() => updateAssignmentStatus(task.assignmentId, 'submitted')}
-                    className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+                    onClick={() => handleComplete(task)}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
                   >
-                    Mark Submitted
+                    Done
                   </button>
                 </div>
               </div>
             ))
           ) : (
-            <p className="text-sm text-gray-500">No open work right now. Nice job.</p>
+            <div className="text-center py-8">
+              <p className="text-4xl mb-3">🎉</p>
+              <p className="font-semibold text-gray-800">All caught up</p>
+              <p className="text-sm text-gray-500 mt-1">No open work right now. Nice job.</p>
+            </div>
           )}
         </div>
       </section>
+
+      {completedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-bounce">
+          <span className="text-xl">🎉</span>
+          <span className="font-medium">{completedToast.title} done! +{completedToast.xp} XP</span>
+        </div>
+      )}
     </div>
   );
 }

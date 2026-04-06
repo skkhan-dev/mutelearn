@@ -1,8 +1,11 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLMS } from '../contexts/LMSContext';
+import { useGamification } from '../contexts/GamificationContext';
 import { useProfessor } from '../contexts/ProfessorContext';
 import { buildDueLabel, formatDateOnly, formatDateTime, isOverdue } from '../lib/dateUtils';
+
+const XP_BY_TYPE = { exam: 50, quiz: 35, assignment: 25, reading: 15 };
 
 function StatTile({ label, value, detail, tone = 'indigo' }) {
   const toneClasses = {
@@ -57,7 +60,18 @@ export default function CourseDetailPage() {
     files,
     studyPacks,
     updateAssignmentStatus,
+    completeAssignment,
   } = useLMS();
+  const { addXP } = useGamification();
+  const [completedToast, setCompletedToast] = useState(null);
+
+  const handleComplete = (assignment) => {
+    completeAssignment(assignment.id);
+    const xp = XP_BY_TYPE[assignment.type] || 25;
+    addXP(xp, `Completed: ${assignment.title}`);
+    setCompletedToast({ title: assignment.title, xp });
+    setTimeout(() => setCompletedToast(null), 3000);
+  };
 
   const course = useMemo(
     () => courses.find((item) => item.id === courseId) || null,
@@ -103,6 +117,11 @@ export default function CourseDetailPage() {
 
     return [...new Set(topics)].filter(Boolean);
   }, [courseAssignments]);
+
+  const doneAssignments = useMemo(
+    () => courseAssignments.filter((a) => ['completed', 'submitted'].includes(a.status)),
+    [courseAssignments]
+  );
 
   const overdueAssignments = useMemo(
     () => openAssignments.filter((assignment) => isOverdue(assignment.dueAt)),
@@ -311,32 +330,32 @@ export default function CourseDetailPage() {
                           </span>
                         </div>
 
-                        <div className="flex flex-wrap gap-3">
-                          {pack && (
+                        {assignment.status !== 'completed' && (
+                          <div className="flex flex-wrap gap-3">
+                            {pack && (
+                              <button
+                                onClick={() => navigate(`/study-packs/${pack.id}`)}
+                                className="px-4 py-2 rounded-xl border border-indigo-200 text-indigo-600 hover:bg-white transition-colors"
+                              >
+                                Open Pack
+                              </button>
+                            )}
+                            {assignment.status === 'pending' && (
+                              <button
+                                onClick={() => updateAssignmentStatus(assignment.id, 'in_progress')}
+                                className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-white transition-colors"
+                              >
+                                In Progress
+                              </button>
+                            )}
                             <button
-                              onClick={() => navigate(`/study-packs/${pack.id}`)}
-                              className="px-4 py-2 rounded-xl border border-indigo-200 text-indigo-600 hover:bg-white transition-colors"
+                              onClick={() => handleComplete(assignment)}
+                              className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
                             >
-                              Open Pack
+                              Done
                             </button>
-                          )}
-                          {assignment.status !== 'in_progress' && assignment.status !== 'submitted' && (
-                            <button
-                              onClick={() => updateAssignmentStatus(assignment.id, 'in_progress')}
-                              className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-white transition-colors"
-                            >
-                              Mark In Progress
-                            </button>
-                          )}
-                          {assignment.status !== 'submitted' && (
-                            <button
-                              onClick={() => updateAssignmentStatus(assignment.id, 'submitted')}
-                              className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-                            >
-                              Mark Submitted
-                            </button>
-                          )}
-                        </div>
+                          </div>
+                        )}
                       </div>
                     );
                   })
@@ -344,6 +363,28 @@ export default function CourseDetailPage() {
                   <p className="text-sm text-gray-500">No assignments have been synced for this course yet.</p>
                 )}
               </div>
+
+              {doneAssignments.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="font-semibold text-gray-600 mb-3">Completed</h3>
+                  <div className="space-y-2">
+                    {doneAssignments.map((assignment) => (
+                      <div
+                        key={assignment.id}
+                        className="rounded-2xl bg-emerald-50/50 border border-emerald-100 px-4 py-3 flex items-center gap-3"
+                      >
+                        <span className="text-emerald-500 text-lg">&#10003;</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-500 line-through">{assignment.title}</p>
+                          <p className="text-xs text-gray-400">
+                            {assignment.type} · {assignment.completedAt ? formatDateOnly(assignment.completedAt) : 'completed'}
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
 
             <section className="space-y-6">
@@ -418,6 +459,13 @@ export default function CourseDetailPage() {
           </div>
         </div>
       </section>
+
+      {completedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-bounce">
+          <span className="text-xl">🎉</span>
+          <span className="font-medium">{completedToast.title} done! +{completedToast.xp} XP</span>
+        </div>
+      )}
     </div>
   );
 }

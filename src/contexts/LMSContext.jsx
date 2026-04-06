@@ -212,6 +212,38 @@ export function LMSProvider({ children }) {
     [setLmsState]
   );
 
+  const completeAssignment = useCallback(
+    (assignmentId) => {
+      let completed = null;
+      setLmsState((previousState) => ({
+        ...previousState,
+        assignments: previousState.assignments.map((assignment) => {
+          if (assignment.id === assignmentId) {
+            completed = assignment;
+            return { ...assignment, status: 'completed', completedAt: new Date().toISOString() };
+          }
+          return assignment;
+        }),
+      }));
+      return completed;
+    },
+    [setLmsState]
+  );
+
+  const completedAssignments = useMemo(
+    () => assignments.filter((a) => a.status === 'completed'),
+    [assignments]
+  );
+
+  const completedThisWeek = useMemo(() => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return completedAssignments.filter((a) => {
+      const completedAt = a.completedAt ? new Date(a.completedAt) : null;
+      return completedAt && completedAt >= weekAgo;
+    });
+  }, [completedAssignments]);
+
   const linkStudyPackDeck = useCallback(
     (packId, deckId) => {
       setLmsState((previousState) => ({
@@ -530,6 +562,9 @@ export function LMSProvider({ children }) {
         syncCanvasDemo,
         disconnectConnector,
         updateAssignmentStatus,
+        completeAssignment,
+        completedAssignments,
+        completedThisWeek,
         linkStudyPackDeck,
         toggleStudyPackChecklistItem,
         updateStudyPackReflection,

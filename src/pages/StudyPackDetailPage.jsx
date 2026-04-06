@@ -1,10 +1,13 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLMS } from '../contexts/LMSContext';
+import { useGamification } from '../contexts/GamificationContext';
 import { useMode } from '../contexts/ModeContext';
 import { useProfessor } from '../contexts/ProfessorContext';
 import { useStudy } from '../contexts/StudyContext';
 import { buildDueLabel, formatDateTime } from '../lib/dateUtils';
+
+const XP_BY_TYPE = { exam: 50, quiz: 35, assignment: 25, reading: 15 };
 
 function StatTile({ label, value, detail, tone = 'indigo' }) {
   const toneClasses = {
@@ -42,11 +45,25 @@ export default function StudyPackDetailPage() {
     toggleStudyPackChecklistItem,
     updateStudyPackReflection,
     updateAssignmentStatus,
+    completeAssignment,
     linkStudyPackDeck,
   } = useLMS();
+  const { addXP } = useGamification();
   const { modeConfig } = useMode();
   const { createDeck, addCardsFromImport } = useStudy();
   const pack = useMemo(() => getStudyPackById(packId), [getStudyPackById, packId]);
+  const [completedToast, setCompletedToast] = useState(null);
+
+  const handleComplete = () => {
+    if (!pack) return;
+    const assignment = completeAssignment(pack.sourceId);
+    const xp = XP_BY_TYPE[assignment?.type || pack.sourceType] || 25;
+    addXP(xp, `Completed: ${pack.title}`);
+    setCompletedToast({ title: pack.assignment?.title || pack.title, xp });
+    setTimeout(() => setCompletedToast(null), 4000);
+  };
+
+  const isExamOrQuiz = pack?.sourceType === 'quiz' || pack?.sourceType === 'exam';
 
   const handleCreateDeck = () => {
     if (!pack) {
@@ -157,18 +174,22 @@ export default function StudyPackDetailPage() {
                 {assignmentStatus.replace('_', ' ')}
               </span>
               <div className="flex flex-wrap gap-3 xl:justify-end">
-                <button
-                  onClick={() => updateAssignmentStatus(pack.sourceId, 'in_progress')}
-                  className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  Mark In Progress
-                </button>
-                <button
-                  onClick={() => updateAssignmentStatus(pack.sourceId, 'submitted')}
-                  className="px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
-                >
-                  Mark Submitted
-                </button>
+                {assignmentStatus === 'pending' && (
+                  <button
+                    onClick={() => updateAssignmentStatus(pack.sourceId, 'in_progress')}
+                    className="px-4 py-2 rounded-xl border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    In Progress
+                  </button>
+                )}
+                {assignmentStatus !== 'completed' && (
+                  <button
+                    onClick={handleComplete}
+                    className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                  >
+                    Done
+                  </button>
+                )}
                 <button
                   onClick={handleCreateDeck}
                   className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
@@ -373,6 +394,29 @@ export default function StudyPackDetailPage() {
           </div>
         </div>
       </section>
+
+      {completedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex flex-col items-center gap-3">
+          <div className="bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3 animate-bounce">
+            <span className="text-xl">🎉</span>
+            <span className="font-medium">{completedToast.title} done! +{completedToast.xp} XP</span>
+          </div>
+          {isExamOrQuiz && (
+            <button
+              onClick={() => {
+                openProfessor({
+                  subject: pack.course?.id || pack.course?.name || '',
+                  prompt: `I just finished ${pack.assignment?.title || pack.title} in ${pack.course?.name || 'my course'}. Quiz me on the key concepts to make sure I really understood the material.`,
+                });
+                setCompletedToast(null);
+              }}
+              className="bg-white text-indigo-600 border border-indigo-200 px-5 py-2 rounded-xl shadow-lg font-medium hover:bg-indigo-50 transition-colors"
+            >
+              Review with Professor
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }
