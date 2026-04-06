@@ -230,20 +230,6 @@ export function LMSProvider({ children }) {
     [setLmsState]
   );
 
-  const completedAssignments = useMemo(
-    () => assignments.filter((a) => a.status === 'completed'),
-    [assignments]
-  );
-
-  const completedThisWeek = useMemo(() => {
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    return completedAssignments.filter((a) => {
-      const completedAt = a.completedAt ? new Date(a.completedAt) : null;
-      return completedAt && completedAt >= weekAgo;
-    });
-  }, [completedAssignments]);
-
   const linkStudyPackDeck = useCallback(
     (packId, deckId) => {
       setLmsState((previousState) => ({
@@ -325,6 +311,20 @@ export function LMSProvider({ children }) {
     () => new Map(assignments.map((assignment) => [assignment.id, assignment])),
     [assignments]
   );
+
+  const completedAssignments = useMemo(
+    () => assignments.filter((a) => a.status === 'completed'),
+    [assignments]
+  );
+
+  const completedThisWeek = useMemo(() => {
+    const weekAgo = new Date();
+    weekAgo.setDate(weekAgo.getDate() - 7);
+    return completedAssignments.filter((a) => {
+      const completedAt = a.completedAt ? new Date(a.completedAt) : null;
+      return completedAt && completedAt >= weekAgo;
+    });
+  }, [completedAssignments]);
 
   const filesByCourseId = useMemo(() => {
     const groupedFiles = new Map();
