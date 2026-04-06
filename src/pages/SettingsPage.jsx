@@ -55,6 +55,36 @@ export default function SettingsPage() {
   const [name, setName] = useState(user.name || '');
   const [gradeLevel, setGradeLevel] = useState(user.gradeLevel || '');
 
+  // Gemini API key
+  const [geminiKey, setGeminiKey] = useState(() => localStorage.getItem('mutelearn-gemini-key') || '');
+  const [geminiStatus, setGeminiStatus] = useState('');
+
+  const handleSaveGeminiKey = async () => {
+    if (!geminiKey.trim()) {
+      localStorage.removeItem('mutelearn-gemini-key');
+      setGeminiStatus('removed');
+      return;
+    }
+    localStorage.setItem('mutelearn-gemini-key', geminiKey.trim());
+    setGeminiStatus('testing');
+    try {
+      const res = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey.trim()}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: 'Reply with only the word: connected' }] }],
+            generationConfig: { maxOutputTokens: 10 },
+          }),
+        }
+      );
+      setGeminiStatus(res.ok ? 'connected' : 'error');
+    } catch {
+      setGeminiStatus('error');
+    }
+  };
+
   // Canvas token connection
   const [canvasUrl, setCanvasUrl] = useState('');
   const [canvasToken, setCanvasToken] = useState('');
@@ -230,6 +260,52 @@ export default function SettingsPage() {
               <span className="text-xs text-gray-500 block mt-1">{config.description}</span>
             </button>
           ))}
+        </div>
+      </SettingSection>
+
+      {/* AI Processing */}
+      <SettingSection
+        title="AI Processing"
+        description="Gemini powers OCR from photos, smart summarization, flashcard and quiz generation from your notes"
+      >
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Gemini API Key</label>
+            <div className="flex gap-3">
+              <input
+                type="password"
+                value={geminiKey}
+                onChange={(e) => setGeminiKey(e.target.value)}
+                placeholder="Paste your Gemini API key"
+                className="flex-1 px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500 text-gray-800"
+              />
+              <button
+                onClick={handleSaveGeminiKey}
+                className="px-5 py-3 bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-600 transition-colors"
+              >
+                {geminiStatus === 'testing' ? 'Testing...' : 'Save'}
+              </button>
+            </div>
+            {geminiStatus === 'connected' && (
+              <p className="text-sm text-emerald-600 mt-2">Connected — AI features are active</p>
+            )}
+            {geminiStatus === 'error' && (
+              <p className="text-sm text-red-600 mt-2">Invalid key. Check your API key and try again.</p>
+            )}
+            {geminiStatus === 'removed' && (
+              <p className="text-sm text-gray-500 mt-2">API key removed. AI features disabled.</p>
+            )}
+          </div>
+          <div className="rounded-2xl bg-indigo-50 border border-indigo-100 p-4 text-sm text-gray-700 space-y-2">
+            <p className="font-semibold">How to get a free Gemini API key:</p>
+            <ol className="list-decimal list-inside space-y-1 text-gray-600">
+              <li>Go to <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer" className="text-indigo-600 underline">aistudio.google.com/apikey</a></li>
+              <li>Sign in with your Google account</li>
+              <li>Click <strong>Create API Key</strong></li>
+              <li>Copy the key and paste it above</li>
+            </ol>
+            <p className="text-xs text-gray-500 mt-2">Free tier: 15 requests/minute, 1 million tokens/day — more than enough for studying.</p>
+          </div>
         </div>
       </SettingSection>
 

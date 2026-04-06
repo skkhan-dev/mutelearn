@@ -1398,6 +1398,102 @@ const server = http.createServer(async (request, response) => {
     return;
   }
 
+  // URL content fetcher — extracts readable text from any webpage
+  if (request.method === 'GET' && url.pathname === '/api/fetch-url') {
+    const targetUrl = url.searchParams.get('url');
+    if (!targetUrl) {
+      sendJson(response, 400, { error: 'Missing url parameter' });
+      return;
+    }
+
+    try {
+      const pageRes = await fetch(targetUrl, {
+        headers: { 'User-Agent': 'MuteLearn/1.0 (study assistant)' },
+      });
+      if (!pageRes.ok) throw new Error(`HTTP ${pageRes.status}`);
+      const html = await pageRes.text();
+
+      // Strip HTML tags and extract readable text
+      const text = html
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/<style[\s\S]*?<\/style>/gi, '')
+        .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+        .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+        .replace(/<header[\s\S]*?<\/header>/gi, '')
+        .replace(/<[^>]+>/g, ' ')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 15000);
+
+      sendJson(response, 200, { text, url: targetUrl });
+    } catch (fetchErr) {
+      sendJson(response, 502, { error: `Could not fetch URL: ${fetchErr.message}` });
+    }
+    return;
+  }
+
+  // YouTube transcript fetcher
+  if (request.method === 'GET' && url.pathname === '/api/youtube-transcript') {
+    const videoId = url.searchParams.get('videoId');
+    if (!videoId) {
+      sendJson(response, 400, { error: 'Missing videoId parameter' });
+      return;
+    }
+
+    try {
+      // Try fetching the video page to get transcript data
+      const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      });
+      const html = await pageRes.text();
+
+      // Extract captions URL from the page
+      const captionsMatch = html.match(/"captionTracks":\s*(\[[\s\S]*?\])/);
+      if (!captionsMatch) {
+        sendJson(response, 404, { error: 'No transcript available for this video. Try pasting the transcript manually.' });
+        return;
+      }
+
+      const captions = JSON.parse(captionsMatch[1]);
+      const englishTrack = captions.find((t) => t.languageCode === 'en') || captions[0];
+      if (!englishTrack?.baseUrl) {
+        sendJson(response, 404, { error: 'No English transcript found.' });
+        return;
+      }
+
+      const transcriptRes = await fetch(englishTrack.baseUrl);
+      const transcriptXml = await transcriptRes.text();
+
+      // Parse the XML transcript
+      const textSegments = [];
+      const segmentPattern = /<text[^>]*>([\s\S]*?)<\/text>/g;
+      let segMatch;
+      while ((segMatch = segmentPattern.exec(transcriptXml)) !== null) {
+        const decoded = segMatch[1]
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/\n/g, ' ')
+          .trim();
+        if (decoded) textSegments.push(decoded);
+      }
+
+      const transcript = textSegments.join(' ').slice(0, 15000);
+      sendJson(response, 200, { transcript, videoId });
+    } catch (ytErr) {
+      sendJson(response, 502, { error: `YouTube fetch failed: ${ytErr.message}` });
+    }
+    return;
+  }
+
   sendJson(response, 404, { error: 'Not found' });
 });
 
