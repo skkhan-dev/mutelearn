@@ -128,7 +128,7 @@ export default function NoteImporter() {
           setRawContent(extracted);
           setStatus({ type: 'success', message: 'Text extracted from image! Processing...' });
         } else {
-          setStatus({ type: 'error', message: 'Add your Gemini API key in Settings to enable photo OCR.' });
+          setStatus({ type: 'error', message: 'AI processing is not available right now. Try again later.' });
           setIsProcessing(false);
           return;
         }
@@ -164,9 +164,9 @@ export default function NoteImporter() {
         if (content?.trim()) {
           const result = heuristicProcess(content);
           setProcessedData(result);
-          setStatus({ type: 'success', message: 'Basic processing done. Add Gemini API key in Settings for AI-powered extraction.' });
+          setStatus({ type: 'success', message: 'Basic processing done. AI-powered extraction will produce better results.' });
         } else {
-          setStatus({ type: 'error', message: 'Add a Gemini API key in Settings for this feature.' });
+          setStatus({ type: 'error', message: 'AI processing is temporarily unavailable.' });
         }
       } else {
         setStatus({ type: 'error', message: err.message || 'Processing failed. Try again.' });
@@ -385,12 +385,6 @@ export default function NoteImporter() {
           </span>
         )}
       </Button>
-
-      {!isGeminiConfigured() && (
-        <p className="text-xs text-center text-gray-400">
-          Add a <a href="/settings" className="text-indigo-500 underline">Gemini API key</a> for AI-powered OCR, smart extraction, and flashcard generation
-        </p>
-      )}
 
       <ImportProcessor
         rawContent={getContentForProcessing()}

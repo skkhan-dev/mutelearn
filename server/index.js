@@ -8,6 +8,9 @@ import { createPersistentStateStore } from './stateStore.js';
 const PORT = Number(process.env.MUTELEARN_SERVER_PORT || 8787);
 const APP_URL = process.env.MUTELEARN_APP_URL || 'http://localhost:5173';
 const APP_ORIGIN = APP_URL === '*' ? '*' : new URL(APP_URL).origin;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
+const GEMINI_MODEL = 'gemini-2.0-flash';
+const GEMINI_URL = 'https://generativelanguage.googleapis.com/v1beta/models';
 const CANVAS_BASE_URL = (process.env.CANVAS_BASE_URL || '').replace(/\/+$/, '');
 const CANVAS_CLIENT_ID = process.env.CANVAS_CLIENT_ID || '';
 const CANVAS_CLIENT_SECRET = process.env.CANVAS_CLIENT_SECRET || '';
@@ -1394,6 +1397,71 @@ const server = http.createServer(async (request, response) => {
       response.end(typeof body === 'string' ? body : JSON.stringify(body));
     } catch (proxyError) {
       sendJson(response, 502, { error: `Canvas unreachable: ${proxyError.message}` });
+    }
+    return;
+  }
+
+  // AI processing proxy — keeps Gemini API key server-side
+  if (request.method === 'POST' && url.pathname === '/api/ai/process') {
+    if (!GEMINI_API_KEY) {
+      sendJson(response, 503, { error: 'AI processing not configured on this server.' });
+      return;
+    }
+
+    const body = await readBody(request);
+    const { action, content, image, count } = body;
+
+    const PROMPTS = {
+      ocr: {
+        parts: [
+          { inlineData: { mimeType: image?.mimeType || 'image/jpeg', data: image?.data || '' } },
+          { text: 'Extract ALL text from this image. This could be handwritten notes, a textbook page, a whiteboard, or a worksheet. Return the extracted text as accurately as possible, preserving structure. If there are diagrams, describe them briefly. Return ONLY the extracted text.' },
+        ],
+      },
+      extract: {
+        parts: [{ text: `You are a study assistant. Analyze the following content and extract structured study material. Return ONLY valid JSON in this exact format:\n\n{"summary":"A clear 2-3 sentence summary","keyTerms":[{"term":"Term","definition":"Definition"}],"concepts":["Concept explained clearly"],"facts":["Important fact"],"flashcards":[{"front":"Question","back":"Answer"}]}\n\nExtract 5-10 key terms with definitions, 3-5 concepts, 5-8 facts, and 5-8 flashcard pairs.\n\nContent:\n${(content || '').slice(0, 8000)}` }],
+      },
+      flashcards: {
+        parts: [{ text: `Create exactly ${count || 10} flashcard pairs from this study content. Each flashcard should test understanding. Return ONLY valid JSON array:\n\n[{"front":"Question","back":"Answer"}]\n\nContent:\n${(content || '').slice(0, 6000)}` }],
+      },
+      quiz: {
+        parts: [{ text: `Create ${count || 5} quiz questions from this content. Mix multiple choice, true/false, and short answer. Return ONLY valid JSON array:\n\n[{"question":"Text","type":"multiple-choice","options":["A)...","B)...","C)...","D)..."],"correctAnswer":"A)...","explanation":"Why"}]\n\nContent:\n${(content || '').slice(0, 6000)}` }],
+      },
+      summarize: {
+        parts: [{ text: `Summarize this study content in 3-5 clear bullet points. Focus on what a student needs to remember.\n\nContent:\n${(content || '').slice(0, 6000)}` }],
+      },
+    };
+
+    const prompt = PROMPTS[action];
+    if (!prompt) {
+      sendJson(response, 400, { error: `Unknown action: ${action}` });
+      return;
+    }
+
+    try {
+      const geminiRes = await fetch(
+        `${GEMINI_URL}/${GEMINI_MODEL}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: prompt.parts }],
+            generationConfig: { maxOutputTokens: action === 'extract' ? 3000 : 2048, temperature: 0.3 },
+          }),
+        }
+      );
+
+      if (!geminiRes.ok) {
+        const errText = await geminiRes.text();
+        sendJson(response, 502, { error: `Gemini error: ${errText.slice(0, 200)}` });
+        return;
+      }
+
+      const geminiData = await geminiRes.json();
+      const text = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      sendJson(response, 200, { text });
+    } catch (aiErr) {
+      sendJson(response, 502, { error: `AI processing failed: ${aiErr.message}` });
     }
     return;
   }

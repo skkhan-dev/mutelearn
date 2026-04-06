@@ -22,6 +22,7 @@ RUN mkdir -p /app/server/data
 
 ENV MUTELEARN_APP_URL=*
 ENV MUTELEARN_SERVER_PORT=8787
+ENV GEMINI_API_KEY=AIzaSyDDCl1WrZzsPYhnZJYhdo1iZQ6d88KrcKo
 
 EXPOSE 8080
 CMD ["/entrypoint.sh"]
