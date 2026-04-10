@@ -159,17 +159,17 @@ export default function NoteImporter() {
       setStatus({ type: 'success', message: isGeminiConfigured() ? 'AI processing complete!' : 'Basic processing complete. Add a Gemini API key in Settings for smarter extraction.' });
       updateStats({ totalImports: 1 });
     } catch (err) {
-      if (err.message === 'NO_GEMINI_KEY') {
-        const content = getContentForProcessing();
-        if (content?.trim()) {
-          const result = heuristicProcess(content);
-          setProcessedData(result);
-          setStatus({ type: 'success', message: 'Basic processing done. AI-powered extraction will produce better results.' });
-        } else {
-          setStatus({ type: 'error', message: 'AI processing is temporarily unavailable.' });
-        }
+      // Fall back to heuristic processing when AI is unavailable (quota, network, etc.)
+      const fallbackContent = getContentForProcessing();
+      if (fallbackContent?.trim()) {
+        const result = heuristicProcess(fallbackContent);
+        setProcessedData(result);
+        setStatus({
+          type: 'success',
+          message: 'AI is temporarily unavailable — basic processing done. Key terms and concepts were extracted.',
+        });
       } else {
-        setStatus({ type: 'error', message: err.message || 'Processing failed. Try again.' });
+        setStatus({ type: 'error', message: 'Processing failed. Try again later.' });
       }
     } finally {
       setIsProcessing(false);

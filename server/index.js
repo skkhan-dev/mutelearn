@@ -1514,44 +1514,189 @@ const server = http.createServer(async (request, response) => {
       return;
     }
 
+    // Helper to decode HTML entities in transcript text
+    const decodeEntities = (text) =>
+      text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'")
+        .replace(/\n/g, ' ')
+        .trim();
+
+    // Parse srv3 format (used by ANDROID client): <p> with nested <s> tags
+    const parseSrv3 = (xml) => {
+      const segments = [];
+      const pPattern = /<p[^>]*>([\s\S]*?)<\/p>/g;
+      let pMatch;
+      while ((pMatch = pPattern.exec(xml)) !== null) {
+        const inner = pMatch[1];
+        const sPattern = /<s[^>]*>([\s\S]*?)<\/s>/g;
+        let sMatch;
+        let lineText = '';
+        while ((sMatch = sPattern.exec(inner)) !== null) {
+          lineText += sMatch[1];
+        }
+        if (!lineText) lineText = inner.replace(/<[^>]+>/g, '');
+        const decoded = decodeEntities(lineText);
+        if (decoded) segments.push(decoded);
+      }
+      return segments;
+    };
+
+    // Parse classic format: <text> tags
+    const parseClassic = (xml) => {
+      const segments = [];
+      const pattern = /<text[^>]*>([\s\S]*?)<\/text>/g;
+      let match;
+      while ((match = pattern.exec(xml)) !== null) {
+        const decoded = decodeEntities(match[1]);
+        if (decoded) segments.push(decoded);
+      }
+      return segments;
+    };
+
     try {
-      // Try fetching the video page to get transcript data
-      const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
-      });
-      const html = await pageRes.text();
+      let textSegments = [];
 
-      // Extract captions URL from the page
-      const captionsMatch = html.match(/"captionTracks":\s*(\[[\s\S]*?\])/);
-      if (!captionsMatch) {
-        sendJson(response, 404, { error: 'No transcript available for this video. Try pasting the transcript manually.' });
-        return;
+      // Consent cookie to bypass EU/datacenter cookie wall
+      const CONSENT_COOKIE =
+        'SOCS=CAISNQgDEitib3FfaWRlbnRpdHlmcm9udGVuZHVpc2VydmVyXzIwMjMxMjA0LjA1X3AwGgJlbiACGgYIgPq7qwY; CONSENT=YES+';
+
+      // Method 1: InnerTube ANDROID client (most reliable for auto-generated captions)
+      const ANDROID_UA = 'com.google.android.youtube/20.10.38 (Linux; U; Android 14)';
+      const ANDROID_KEY = 'AIzaSyA8eiZmM1FaDVjRy-df2KTyQ_vz_yYM39w';
+      try {
+        const playerRes = await fetch(
+          `https://www.youtube.com/youtubei/v1/player?key=${ANDROID_KEY}&prettyPrint=false`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'User-Agent': ANDROID_UA,
+              Cookie: CONSENT_COOKIE,
+            },
+            body: JSON.stringify({
+              context: {
+                client: { clientName: 'ANDROID', clientVersion: '20.10.38', androidSdkVersion: 30, hl: 'en' },
+              },
+              videoId: videoId,
+              contentCheckOk: true,
+              racyCheckOk: true,
+            }),
+          }
+        );
+        const playerData = await playerRes.json();
+        console.log('[YT] ANDROID player status:', playerData?.playabilityStatus?.status);
+        const caps = playerData?.captions?.playerCaptionsTracklistRenderer?.captionTracks;
+        console.log('[YT] ANDROID caption tracks:', caps?.length || 0);
+
+        if (caps && caps.length > 0) {
+          const track = caps.find((t) => t.languageCode === 'en') || caps[0];
+          if (track?.baseUrl) {
+            const tRes = await fetch(track.baseUrl, {
+              headers: { 'User-Agent': ANDROID_UA, Cookie: CONSENT_COOKIE },
+            });
+            const xml = await tRes.text();
+            console.log('[YT] ANDROID transcript XML length:', xml.length);
+            if (xml.length > 0) {
+              // Try srv3 format first, then classic
+              textSegments = parseSrv3(xml);
+              if (textSegments.length === 0) textSegments = parseClassic(xml);
+              console.log('[YT] ANDROID parsed segments:', textSegments.length);
+            }
+          }
+        }
+      } catch (innertubeErr) {
+        console.log('[YT] InnerTube ANDROID method failed:', innertubeErr.message);
       }
 
-      const captions = JSON.parse(captionsMatch[1]);
-      const englishTrack = captions.find((t) => t.languageCode === 'en') || captions[0];
-      if (!englishTrack?.baseUrl) {
-        sendJson(response, 404, { error: 'No English transcript found.' });
-        return;
+      // Method 2: Scrape video page for caption tracks
+      if (textSegments.length === 0) {
+        try {
+          const pageRes = await fetch(`https://www.youtube.com/watch?v=${videoId}`, {
+            headers: {
+              'User-Agent':
+                'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+              Cookie: CONSENT_COOKIE,
+              'Accept-Language': 'en-US,en;q=0.9',
+            },
+          });
+          const html = await pageRes.text();
+          console.log('[YT] Page HTML length:', html.length);
+
+          const captionsMatch = html.match(/"captionTracks":\s*(\[[\s\S]*?\])/);
+          console.log('[YT] Page has captionTracks:', !!captionsMatch);
+
+          if (captionsMatch) {
+            const captions = JSON.parse(captionsMatch[1]);
+            const englishTrack = captions.find((t) => t.languageCode === 'en') || captions[0];
+            if (englishTrack?.baseUrl) {
+              // Try fetching with ANDROID UA + consent (may bypass restrictions)
+              const transcriptRes = await fetch(englishTrack.baseUrl, {
+                headers: { 'User-Agent': ANDROID_UA, Cookie: CONSENT_COOKIE },
+              });
+              const xml = await transcriptRes.text();
+              console.log('[YT] Page caption XML length:', xml.length);
+              if (xml.length > 0) {
+                textSegments = parseClassic(xml);
+                if (textSegments.length === 0) textSegments = parseSrv3(xml);
+              }
+            }
+          }
+        } catch (scrapeErr) {
+          console.log('[YT] Page scrape method failed:', scrapeErr.message);
+        }
       }
 
-      const transcriptRes = await fetch(englishTrack.baseUrl);
-      const transcriptXml = await transcriptRes.text();
+      // Method 3: Gemini AI summarization fallback (when transcript extraction fails)
+      if (textSegments.length === 0 && GEMINI_API_KEY) {
+        try {
+          console.log('[YT] Trying Gemini AI fallback for video:', videoId);
+          const geminiRes = await fetch(
+            `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contents: [
+                  {
+                    parts: [
+                      {
+                        text: 'Provide a detailed word-for-word transcript of this YouTube video. Write out everything that is said. If the video is educational, include all explanations, examples, and key terms mentioned.',
+                      },
+                      {
+                        fileData: {
+                          mimeType: 'video/mp4',
+                          fileUri: `https://www.youtube.com/watch?v=${videoId}`,
+                        },
+                      },
+                    ],
+                  },
+                ],
+              }),
+            }
+          );
+          const geminiData = await geminiRes.json();
+          const aiText = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (aiText && aiText.length > 50) {
+            console.log('[YT] Gemini fallback succeeded, length:', aiText.length);
+            sendJson(response, 200, { transcript: aiText.slice(0, 15000), videoId, source: 'ai' });
+            return;
+          } else {
+            console.log('[YT] Gemini fallback returned insufficient content');
+          }
+        } catch (geminiErr) {
+          console.log('[YT] Gemini fallback failed:', geminiErr.message);
+        }
+      }
 
-      // Parse the XML transcript
-      const textSegments = [];
-      const segmentPattern = /<text[^>]*>([\s\S]*?)<\/text>/g;
-      let segMatch;
-      while ((segMatch = segmentPattern.exec(transcriptXml)) !== null) {
-        const decoded = segMatch[1]
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/\n/g, ' ')
-          .trim();
-        if (decoded) textSegments.push(decoded);
+      if (textSegments.length === 0) {
+        sendJson(response, 404, {
+          error: 'No transcript available for this video. Try pasting the transcript manually.',
+        });
+        return;
       }
 
       const transcript = textSegments.join(' ').slice(0, 15000);

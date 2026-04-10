@@ -20,6 +20,7 @@ export default function VideoImporter({ onImport }) {
   const [transcript, setTranscript] = useState('');
   const [fetching, setFetching] = useState(false);
   const [fetchError, setFetchError] = useState('');
+  const [showGuide, setShowGuide] = useState(false);
 
   const videoId = useMemo(() => extractVideoId(url), [url]);
   const thumbnailUrl = videoId ? `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` : null;
@@ -35,12 +36,15 @@ export default function VideoImporter({ onImport }) {
 
       if (!res.ok) {
         setFetchError(data.error || 'Could not fetch transcript');
+        setShowGuide(true);
         return;
       }
 
       setTranscript(data.transcript || '');
+      setShowGuide(false);
     } catch {
       setFetchError('Could not reach the server. Try pasting the transcript manually.');
+      setShowGuide(true);
     } finally {
       setFetching(false);
     }
@@ -75,7 +79,21 @@ export default function VideoImporter({ onImport }) {
               </button>
             )}
           </div>
-          {fetchError && <p className="text-sm text-amber-600">{fetchError}</p>}
+          {fetchError && (
+            <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <p className="font-medium">{fetchError}</p>
+              <p className="mt-1 text-amber-600">
+                You can paste the transcript manually below. Click{' '}
+                <button
+                  onClick={() => setShowGuide(!showGuide)}
+                  className="underline font-medium text-indigo-600 hover:text-indigo-700"
+                >
+                  "How to copy transcript"
+                </button>{' '}
+                for step-by-step instructions.
+              </p>
+            </div>
+          )}
         </div>
       </Card>
 
@@ -99,12 +117,58 @@ export default function VideoImporter({ onImport }) {
         </Card>
       )}
 
+      {/* How-to guide for manually copying transcripts */}
+      {showGuide && videoId && (
+        <Card>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-800">How to Copy the Transcript</h3>
+              <button onClick={() => setShowGuide(false)} className="text-gray-400 hover:text-gray-600 text-lg">
+                &times;
+              </button>
+            </div>
+            <ol className="text-sm text-gray-700 space-y-2 list-decimal list-inside">
+              <li>
+                <a
+                  href={`https://www.youtube.com/watch?v=${videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-indigo-600 underline font-medium hover:text-indigo-700"
+                >
+                  Open the video on YouTube
+                </a>
+              </li>
+              <li>
+                Click the <span className="font-semibold">"...more"</span> button below the video description
+              </li>
+              <li>
+                Click <span className="font-semibold">"Show transcript"</span> in the description area
+              </li>
+              <li>
+                In the transcript panel, click the <span className="font-semibold">three dots (&middot;&middot;&middot;)</span> menu, then{' '}
+                <span className="font-semibold">"Toggle timestamps"</span> to remove timestamps
+              </li>
+              <li>
+                Select all the transcript text (<span className="font-mono text-xs bg-gray-100 px-1 rounded">Ctrl+A</span> or{' '}
+                <span className="font-mono text-xs bg-gray-100 px-1 rounded">Cmd+A</span>), then copy (<span className="font-mono text-xs bg-gray-100 px-1 rounded">Ctrl+C</span> or{' '}
+                <span className="font-mono text-xs bg-gray-100 px-1 rounded">Cmd+C</span>)
+              </li>
+              <li>
+                Paste it in the text box below
+              </li>
+            </ol>
+          </div>
+        </Card>
+      )}
+
       <Card>
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-gray-800">Video Transcript</h3>
           <p className="text-xs text-gray-500">
             {videoId
-              ? 'Click "Get Transcript" above, or paste the transcript manually below.'
+              ? transcript
+                ? 'Transcript loaded! Click "Use This Content" to generate study materials.'
+                : 'Click "Get Transcript" above to auto-extract, or paste the transcript manually below.'
               : 'Paste a YouTube URL above, then fetch the transcript automatically.'}
           </p>
           <textarea
