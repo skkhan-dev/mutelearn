@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import { useMode } from '../../contexts/ModeContext';
+import { useLMS } from '../../contexts/LMSContext';
 import { useGamification } from '../../contexts/GamificationContext';
 import { xpPerLevel, levelNames } from '../../config/modeDefaults';
 import ModeSwitcher from '../mode/ModeSwitcher';
 
 export default function TopBar({ onToggleSidebar }) {
-  const { mode, modeConfig } = useMode();
+  const { modeConfig } = useMode();
+  const { isCanvasConnected } = useLMS();
   const { xp, level, streak } = useGamification();
   const [showModeSwitcher, setShowModeSwitcher] = useState(false);
 
@@ -80,6 +82,11 @@ export default function TopBar({ onToggleSidebar }) {
             {levelName}
           </p>
         </div>
+        {isCanvasConnected && (
+          <span className="hidden lg:inline-flex px-2 py-1 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700">
+            Canvas synced
+          </span>
+        )}
       </div>
 
       {/* Right: streak + mode switcher */}

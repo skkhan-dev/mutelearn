@@ -3,8 +3,11 @@ import { useMode } from '../../contexts/ModeContext';
 
 const navItems = [
   { to: '/', label: 'Dashboard', icon: '🏠' },
+  { to: '/planner', label: 'Planner', icon: '🗓️' },
+  { to: '/courses', label: 'Courses', icon: '🎒' },
   { to: '/flashcards', label: 'Flashcards', icon: '🃏' },
-  { to: '/session', label: 'Study Session', icon: '⏱️' },
+  { to: '/study', label: 'Study Session', icon: '⏱️' },
+  { to: '/study-packs', label: 'Study Packs', icon: '📦' },
   { to: '/notes', label: 'Notes', icon: '📝' },
   { to: '/quizzes', label: 'Quizzes', icon: '❓' },
   { to: '/games', label: 'Games', icon: '🎮' },

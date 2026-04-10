@@ -1,0 +1,517 @@
+{
+  "sessions": {
+    "e4127932-bc14-40b2-9049-84055b3330a0": {
+      "id": "session-51a36d6d-6162-4bcd-b598-360d9972576b",
+      "issuedAt": "2026-03-31T06:35:36.655Z",
+      "user": {
+        "id": "user-09841305-558d-43b3-acc3-5384f7064dac",
+        "name": "Shahir",
+        "email": "learner@mutelearn.local",
+        "role": "student",
+        "gradeLevel": "college"
+      },
+      "connectors": {
+        "canvas": {
+          "status": "connected",
+          "lastSyncedAt": "2026-03-31T06:35:41.897Z",
+          "connectionMode": "demo",
+          "lastSyncSource": "server-demo",
+          "courseCount": 3
+        }
+      },
+      "oauth": {
+        "canvas": {
+          "status": "disconnected"
+        }
+      }
+    },
+    "396f20a3-d6fd-4b96-b1be-7bc42165e1c1": {
+      "id": "session-5b8dbd44-7a6a-4266-9bde-ea9597a71b39",
+      "issuedAt": "2026-03-31T06:44:20.959Z",
+      "user": {
+        "id": "user-d01e7e1d-ce70-4e46-a6b7-dcb3e4406d69",
+        "name": "Shahir",
+        "email": "learner@mutelearn.local",
+        "role": "student",
+        "gradeLevel": "college"
+      },
+      "connectors": {
+        "canvas": {
+          "status": "connected",
+          "lastSyncedAt": "2026-03-31T06:44:25.186Z",
+          "connectionMode": "demo",
+          "lastSyncSource": "server-demo",
+          "courseCount": 3
+        }
+      },
+      "oauth": {
+        "canvas": {
+          "status": "disconnected"
+        }
+      },
+      "lmsSnapshots": {
+        "canvas": {
+          "connectors": {
+            "canvas": {
+              "id": "canvas",
+              "name": "Canvas",
+              "status": "connected",
+              "connectionMode": "demo",
+              "capabilities": [
+                "courses",
+                "assignments",
+                "files",
+                "grades",
+                "assessment review"
+              ],
+              "lastSyncedAt": "2026-03-31T06:44:25.186Z"
+            }
+          },
+          "courses": [
+            {
+              "id": "course-cell-biology",
+              "connectorId": "canvas",
+              "code": "BIOC-310",
+              "name": "Cell Biology",
+              "instructor": "Prof. Singh",
+              "color": "#10b981",
+              "currentGrade": 86,
+              "focusTopic": "membrane transport",
+              "topics": [
+                "membrane transport",
+                "signal transduction",
+                "cell cycle"
+              ],
+              "syncedAt": "2026-03-31T06:44:25.186Z"
+            },
+            {
+              "id": "course-cognitive-psychology",
+              "connectorId": "canvas",
+              "code": "PSYC-240",
+              "name": "Cognitive Psychology",
+              "instructor": "Dr. Mills",
+              "color": "#8b5cf6",
+              "currentGrade": 90,
+              "focusTopic": "memory models",
+              "topics": [
+                "memory models",
+                "attention",
+                "decision making"
+              ],
+              "syncedAt": "2026-03-31T06:44:25.186Z"
+            },
+            {
+              "id": "course-statistics",
+              "connectorId": "canvas",
+              "code": "STAT-225",
+              "name": "Statistics",
+              "instructor": "Prof. Adler",
+              "color": "#3b82f6",
+              "currentGrade": 81,
+              "focusTopic": "hypothesis testing",
+              "topics": [
+                "hypothesis testing",
+                "confidence intervals",
+                "sampling error"
+              ],
+              "syncedAt": "2026-03-31T06:44:25.186Z"
+            }
+          ],
+          "assignments": [
+            {
+              "id": "assignment-cell-biology-signal-pathways-discussion-post",
+              "courseId": "course-cell-biology",
+              "connectorId": "canvas",
+              "title": "Signal Pathways Discussion Post",
+              "type": "assignment",
+              "topic": "signal transduction",
+              "dueAt": "2026-04-01T00:00:00.000Z",
+              "estimatedMinutes": 50,
+              "status": "in_progress",
+              "scoreHint": null,
+              "reviewAvailable": false,
+              "description": "Imported from Canvas demo sync for Cell Biology."
+            },
+            {
+              "id": "assignment-cell-biology-cell-cycle-midterm",
+              "courseId": "course-cell-biology",
+              "connectorId": "canvas",
+              "title": "Cell Cycle Midterm",
+              "type": "exam",
+              "topic": "cell cycle",
+              "dueAt": "2026-04-07T00:00:00.000Z",
+              "estimatedMinutes": 90,
+              "status": "pending",
+              "scoreHint": 71,
+              "reviewAvailable": true,
+              "description": "Imported from Canvas demo sync for Cell Biology."
+            },
+            {
+              "id": "assignment-cognitive-psychology-attention-article-summary",
+              "courseId": "course-cognitive-psychology",
+              "connectorId": "canvas",
+              "title": "Attention Article Summary",
+              "type": "assignment",
+              "topic": "attention",
+              "dueAt": "2026-04-02T00:00:00.000Z",
+              "estimatedMinutes": 45,
+              "status": "pending",
+              "scoreHint": null,
+              "reviewAvailable": false,
+              "description": "Imported from Canvas demo sync for Cognitive Psychology."
+            },
+            {
+              "id": "assignment-cognitive-psychology-memory-models-quiz",
+              "courseId": "course-cognitive-psychology",
+              "connectorId": "canvas",
+              "title": "Memory Models Quiz",
+              "type": "quiz",
+              "topic": "memory models",
+              "dueAt": "2026-04-04T00:00:00.000Z",
+              "estimatedMinutes": 25,
+              "status": "pending",
+              "scoreHint": 78,
+              "reviewAvailable": true,
+              "description": "Imported from Canvas demo sync for Cognitive Psychology."
+            },
+            {
+              "id": "assignment-statistics-hypothesis-testing-problem-set",
+              "courseId": "course-statistics",
+              "connectorId": "canvas",
+              "title": "Hypothesis Testing Problem Set",
+              "type": "assignment",
+              "topic": "hypothesis testing",
+              "dueAt": "2026-04-03T00:00:00.000Z",
+              "estimatedMinutes": 55,
+              "status": "pending",
+              "scoreHint": null,
+              "reviewAvailable": false,
+              "description": "Imported from Canvas demo sync for Statistics."
+            },
+            {
+              "id": "assignment-statistics-statistics-review-exam",
+              "courseId": "course-statistics",
+              "connectorId": "canvas",
+              "title": "Statistics Review Exam",
+              "type": "exam",
+              "topic": "confidence intervals",
+              "dueAt": "2026-04-10T00:00:00.000Z",
+              "estimatedMinutes": 90,
+              "status": "pending",
+              "scoreHint": 67,
+              "reviewAvailable": true,
+              "description": "Imported from Canvas demo sync for Statistics."
+            }
+          ],
+          "files": [
+            {
+              "id": "file-cell-biology-membrane-transport-slides",
+              "courseId": "course-cell-biology",
+              "title": "Membrane Transport Slides",
+              "kind": "slides",
+              "connectorId": "canvas",
+              "importedAt": "2026-03-31T06:44:25.186Z",
+              "url": "#"
+            },
+            {
+              "id": "file-cell-biology-signal-transduction-review-sheet",
+              "courseId": "course-cell-biology",
+              "title": "Signal Transduction Review Sheet",
+              "kind": "reading",
+              "connectorId": "canvas",
+              "importedAt": "2026-03-31T06:44:25.186Z",
+              "url": "#"
+            },
+            {
+              "id": "file-cognitive-psychology-attention-lecture-recording-notes",
+              "courseId": "course-cognitive-psychology",
+              "title": "Attention Lecture Recording Notes",
+              "kind": "lecture",
+              "connectorId": "canvas",
+              "importedAt": "2026-03-31T06:44:25.186Z",
+              "url": "#"
+            },
+            {
+              "id": "file-cognitive-psychology-memory-models-summary",
+              "courseId": "course-cognitive-psychology",
+              "title": "Memory Models Summary",
+              "kind": "reading",
+              "connectorId": "canvas",
+              "importedAt": "2026-03-31T06:44:25.186Z",
+              "url": "#"
+            },
+            {
+              "id": "file-statistics-confidence-intervals-walkthrough",
+              "courseId": "course-statistics",
+              "title": "Confidence Intervals Walkthrough",
+              "kind": "slides",
+              "connectorId": "canvas",
+              "importedAt": "2026-03-31T06:44:25.186Z",
+              "url": "#"
+            },
+            {
+              "id": "file-statistics-sampling-error-homework-guide",
+              "courseId": "course-statistics",
+              "title": "Sampling Error Homework Guide",
+              "kind": "worksheet",
+              "connectorId": "canvas",
+              "importedAt": "2026-03-31T06:44:25.186Z",
+              "url": "#"
+            }
+          ],
+          "studyPacks": [
+            {
+              "id": "pack-cell-biology-signal-pathways-discussion-post",
+              "courseId": "course-cell-biology",
+              "sourceId": "assignment-cell-biology-signal-pathways-discussion-post",
+              "sourceType": "assignment",
+              "title": "Signal Pathways Discussion Post Study Pack",
+              "summary": "A guided prep pack for Signal Pathways Discussion Post in Cell Biology, with a focus on signal transduction.",
+              "dueAt": "2026-04-01T00:00:00.000Z",
+              "weakTopics": [],
+              "checklist": [
+                "Do one 12 minute sprint on the hardest part first",
+                "Take a quick movement break",
+                "Finish one more short block and submit a draft version"
+              ],
+              "flashcards": [
+                {
+                  "front": "Cell Biology: membrane transport concept 1",
+                  "back": "Explain how membrane transport connects to signal pathways discussion post."
+                },
+                {
+                  "front": "Cell Biology: signal transduction concept 2",
+                  "back": "Explain how signal transduction connects to signal pathways discussion post."
+                },
+                {
+                  "front": "Cell Biology: cell cycle concept 3",
+                  "back": "Explain how cell cycle connects to signal pathways discussion post."
+                }
+              ],
+              "recommendedSessionMinutes": 20,
+              "linkedDeckId": null,
+              "reviewAvailable": false,
+              "reviewSummary": "Review details are not yet available from the LMS."
+            },
+            {
+              "id": "pack-cell-biology-cell-cycle-midterm",
+              "courseId": "course-cell-biology",
+              "sourceId": "assignment-cell-biology-cell-cycle-midterm",
+              "sourceType": "exam",
+              "title": "Cell Cycle Midterm Study Pack",
+              "summary": "A guided prep pack for Cell Cycle Midterm in Cell Biology, with a focus on cell cycle.",
+              "dueAt": "2026-04-07T00:00:00.000Z",
+              "weakTopics": [
+                "cell cycle"
+              ],
+              "checklist": [
+                "Do one 12 minute sprint on the hardest part first",
+                "Take a quick movement break",
+                "Finish one more short block and submit a draft version"
+              ],
+              "flashcards": [
+                {
+                  "front": "Cell Biology: membrane transport concept 1",
+                  "back": "Explain how membrane transport connects to cell cycle midterm."
+                },
+                {
+                  "front": "Cell Biology: signal transduction concept 2",
+                  "back": "Explain how signal transduction connects to cell cycle midterm."
+                },
+                {
+                  "front": "Cell Biology: cell cycle concept 3",
+                  "back": "Explain how cell cycle connects to cell cycle midterm."
+                }
+              ],
+              "recommendedSessionMinutes": 20,
+              "linkedDeckId": null,
+              "reviewAvailable": true,
+              "reviewSummary": "Review is available for Cell Cycle Midterm. Focus on missed questions about cell cycle."
+            },
+            {
+              "id": "pack-cognitive-psychology-attention-article-summary",
+              "courseId": "course-cognitive-psychology",
+              "sourceId": "assignment-cognitive-psychology-attention-article-summary",
+              "sourceType": "assignment",
+              "title": "Attention Article Summary Study Pack",
+              "summary": "A guided prep pack for Attention Article Summary in Cognitive Psychology, with a focus on attention.",
+              "dueAt": "2026-04-02T00:00:00.000Z",
+              "weakTopics": [],
+              "checklist": [
+                "Do one 12 minute sprint on the hardest part first",
+                "Take a quick movement break",
+                "Finish one more short block and submit a draft version"
+              ],
+              "flashcards": [
+                {
+                  "front": "Cognitive Psychology: memory models concept 1",
+                  "back": "Explain how memory models connects to attention article summary."
+                },
+                {
+                  "front": "Cognitive Psychology: attention concept 2",
+                  "back": "Explain how attention connects to attention article summary."
+                },
+                {
+                  "front": "Cognitive Psychology: decision making concept 3",
+                  "back": "Explain how decision making connects to attention article summary."
+                }
+              ],
+              "recommendedSessionMinutes": 20,
+              "linkedDeckId": null,
+              "reviewAvailable": false,
+              "reviewSummary": "Review details are not yet available from the LMS."
+            },
+            {
+              "id": "pack-cognitive-psychology-memory-models-quiz",
+              "courseId": "course-cognitive-psychology",
+              "sourceId": "assignment-cognitive-psychology-memory-models-quiz",
+              "sourceType": "quiz",
+              "title": "Memory Models Quiz Study Pack",
+              "summary": "A guided prep pack for Memory Models Quiz in Cognitive Psychology, with a focus on memory models.",
+              "dueAt": "2026-04-04T00:00:00.000Z",
+              "weakTopics": [],
+              "checklist": [
+                "Do one 12 minute sprint on the hardest part first",
+                "Take a quick movement break",
+                "Finish one more short block and submit a draft version"
+              ],
+              "flashcards": [
+                {
+                  "front": "Cognitive Psychology: memory models concept 1",
+                  "back": "Explain how memory models connects to memory models quiz."
+                },
+                {
+                  "front": "Cognitive Psychology: attention concept 2",
+                  "back": "Explain how attention connects to memory models quiz."
+                },
+                {
+                  "front": "Cognitive Psychology: decision making concept 3",
+                  "back": "Explain how decision making connects to memory models quiz."
+                }
+              ],
+              "recommendedSessionMinutes": 20,
+              "linkedDeckId": null,
+              "reviewAvailable": true,
+              "reviewSummary": "Review is available for Memory Models Quiz. Focus on missed questions about memory models."
+            },
+            {
+              "id": "pack-statistics-hypothesis-testing-problem-set",
+              "courseId": "course-statistics",
+              "sourceId": "assignment-statistics-hypothesis-testing-problem-set",
+              "sourceType": "assignment",
+              "title": "Hypothesis Testing Problem Set Study Pack",
+              "summary": "A guided prep pack for Hypothesis Testing Problem Set in Statistics, with a focus on hypothesis testing.",
+              "dueAt": "2026-04-03T00:00:00.000Z",
+              "weakTopics": [],
+              "checklist": [
+                "Do one 12 minute sprint on the hardest part first",
+                "Take a quick movement break",
+                "Finish one more short block and submit a draft version"
+              ],
+              "flashcards": [
+                {
+                  "front": "Statistics: hypothesis testing concept 1",
+                  "back": "Explain how hypothesis testing connects to hypothesis testing problem set."
+                },
+                {
+                  "front": "Statistics: confidence intervals concept 2",
+                  "back": "Explain how confidence intervals connects to hypothesis testing problem set."
+                },
+                {
+                  "front": "Statistics: sampling error concept 3",
+                  "back": "Explain how sampling error connects to hypothesis testing problem set."
+                }
+              ],
+              "recommendedSessionMinutes": 20,
+              "linkedDeckId": null,
+              "reviewAvailable": false,
+              "reviewSummary": "Review details are not yet available from the LMS."
+            },
+            {
+              "id": "pack-statistics-statistics-review-exam",
+              "courseId": "course-statistics",
+              "sourceId": "assignment-statistics-statistics-review-exam",
+              "sourceType": "exam",
+              "title": "Statistics Review Exam Study Pack",
+              "summary": "A guided prep pack for Statistics Review Exam in Statistics, with a focus on confidence intervals.",
+              "dueAt": "2026-04-10T00:00:00.000Z",
+              "weakTopics": [
+                "confidence intervals"
+              ],
+              "checklist": [
+                "Do one 12 minute sprint on the hardest part first",
+                "Take a quick movement break",
+                "Finish one more short block and submit a draft version"
+              ],
+              "flashcards": [
+                {
+                  "front": "Statistics: hypothesis testing concept 1",
+                  "back": "Explain how hypothesis testing connects to statistics review exam."
+                },
+                {
+                  "front": "Statistics: confidence intervals concept 2",
+                  "back": "Explain how confidence intervals connects to statistics review exam."
+                },
+                {
+                  "front": "Statistics: sampling error concept 3",
+                  "back": "Explain how sampling error connects to statistics review exam."
+                }
+              ],
+              "recommendedSessionMinutes": 20,
+              "linkedDeckId": null,
+              "reviewAvailable": true,
+              "reviewSummary": "Review is available for Statistics Review Exam. Focus on missed questions about confidence intervals."
+            }
+          ],
+          "syncHistory": [
+            {
+              "id": "sync-canvas-1774939465186",
+              "connectorId": "canvas",
+              "label": "Canvas demo sync",
+              "completedAt": "2026-03-31T06:44:25.186Z"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "oauthStates": {},
+  "jobs": [
+    {
+      "id": "job-9eff5a62-59ae-4491-9e6d-734b94ee8dc1",
+      "sessionId": "session-5b8dbd44-7a6a-4266-9bde-ea9597a71b39",
+      "connectorId": "canvas",
+      "source": "server-demo",
+      "status": "completed",
+      "queuedAt": "2026-03-31T06:44:25.184Z",
+      "startedAt": "2026-03-31T06:44:25.186Z",
+      "finishedAt": "2026-03-31T06:44:25.187Z",
+      "requestBody": {
+        "user": {
+          "name": "Shahir",
+          "gradeLevel": "college"
+        },
+        "mode": "adhd",
+        "modeConfig": {
+          "timer": {
+            "focus": 20
+          }
+        },
+        "previousState": null
+      },
+      "summary": "3 courses, 6 assignments, 6 study packs",
+      "error": ""
+    },
+    {
+      "id": "job-18c042a3-7593-4e5e-954c-0b2e4de3656c",
+      "sessionId": "session-51a36d6d-6162-4bcd-b598-360d9972576b",
+      "connectorId": "canvas",
+      "source": "server-demo",
+      "status": "completed",
+      "startedAt": "2026-03-31T06:35:41.896Z",
+      "finishedAt": "2026-03-31T06:35:41.898Z",
+      "summary": "3 courses, 6 assignments, 6 study packs",
+      "error": ""
+    }
+  ]
+}

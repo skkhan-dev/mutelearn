@@ -1,5 +1,8 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useStudy } from '../contexts/StudyContext';
+import { generateFlashcards, isGeminiConfigured } from '../lib/gemini';
+import NoteImporter from '../components/import/NoteImporter';
 
 function FolderSidebar({ folders, activeFolder, onSelectFolder, onCreateFolder, onDeleteFolder }) {
   const [newFolderName, setNewFolderName] = useState('');
@@ -92,7 +95,7 @@ function FolderSidebar({ folders, activeFolder, onSelectFolder, onCreateFolder, 
   );
 }
 
-function NotePreviewCard({ note, onClick, onDelete }) {
+function NotePreviewCard({ note, onClick, onDelete, onGenerate, isGenerating }) {
   const formatDate = (dateStr) => {
     const d = new Date(dateStr);
     return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -134,7 +137,19 @@ function NotePreviewCard({ note, onClick, onDelete }) {
             </span>
           ))}
         </div>
-        <span className="text-xs text-gray-400">{formatDate(note.updatedAt)}</span>
+        <div className="flex items-center gap-2">
+          {onGenerate && (
+            <button
+              onClick={(e) => { e.stopPropagation(); onGenerate(note); }}
+              disabled={isGenerating}
+              className="text-xs px-2 py-1 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors disabled:opacity-50"
+              title="Generate flashcards from this note"
+            >
+              {isGenerating ? '...' : '🃏 Cards'}
+            </button>
+          )}
+          <span className="text-xs text-gray-400">{formatDate(note.updatedAt)}</span>
+        </div>
       </div>
     </div>
   );
@@ -259,11 +274,39 @@ function NoteEditorModal({ note, isOpen, onClose, onSave }) {
 }
 
 export default function NotesPage() {
-  const { notes, folders, createNote, updateNote, deleteNote, createFolder, deleteFolder } = useStudy();
+  const navigate = useNavigate();
+  const { notes, folders, createNote, updateNote, deleteNote, createFolder, deleteFolder, createDeck, addCardsFromImport } = useStudy();
   const [activeFolder, setActiveFolder] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [editingNote, setEditingNote] = useState(undefined); // undefined = closed, null = new, object = editing
+  const [editingNote, setEditingNote] = useState(undefined);
   const [showEditor, setShowEditor] = useState(false);
+  const [showImporter, setShowImporter] = useState(false);
+  const [generatingFor, setGeneratingFor] = useState(null);
+
+  const handleGenerateFlashcards = async (note) => {
+    if (!note.content?.trim()) return;
+    setGeneratingFor(note.id);
+    try {
+      let cards;
+      if (isGeminiConfigured()) {
+        cards = await generateFlashcards(note.content, 8);
+      } else {
+        cards = note.content.split(/[.!?]+/).filter((s) => s.trim().length > 15).slice(0, 8).map((s) => ({
+          front: `What does this mean: "${s.trim().slice(0, 60)}..."?`,
+          back: s.trim(),
+        }));
+      }
+      if (cards.length > 0) {
+        const deck = createDeck(note.title || 'Notes Deck', 'Generated');
+        addCardsFromImport(deck.id, cards);
+        navigate(`/flashcards/${deck.id}`);
+      }
+    } catch {
+      // Silently fall back
+    } finally {
+      setGeneratingFor(null);
+    }
+  };
 
   const filteredNotes = notes.filter((note) => {
     const matchesFolder =
@@ -312,13 +355,22 @@ export default function NotesPage() {
             {notes.length} {notes.length === 1 ? 'note' : 'notes'}
           </p>
         </div>
-        <button
-          onClick={handleCreateNote}
-          className="px-6 py-3 bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-600 transition-colors shadow-md hover:shadow-lg flex items-center gap-2 self-start"
-        >
-          <span className="text-xl">+</span>
-          New Note
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowImporter(true)}
+            className="px-5 py-3 bg-emerald-500 text-white rounded-xl font-medium hover:bg-emerald-600 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
+          >
+            <span>📥</span>
+            Import
+          </button>
+          <button
+            onClick={handleCreateNote}
+            className="px-5 py-3 bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-600 transition-colors shadow-md hover:shadow-lg flex items-center gap-2"
+          >
+            <span className="text-xl">+</span>
+            New Note
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col lg:flex-row gap-6">
@@ -356,6 +408,8 @@ export default function NotesPage() {
                   note={note}
                   onClick={handleEditNote}
                   onDelete={handleDeleteNote}
+                  onGenerate={handleGenerateFlashcards}
+                  isGenerating={generatingFor === note.id}
                 />
               ))}
             </div>
@@ -392,6 +446,21 @@ export default function NotesPage() {
         }}
         onSave={handleSaveNote}
       />
+
+      {showImporter && (
+        <div className="fixed inset-0 z-50 flex items-start justify-center p-4 pt-12 overflow-y-auto">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowImporter(false)} />
+          <div className="relative bg-white rounded-3xl p-6 w-full max-w-2xl shadow-2xl mb-12">
+            <button
+              onClick={() => setShowImporter(false)}
+              className="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 text-gray-400 text-lg"
+            >
+              x
+            </button>
+            <NoteImporter />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

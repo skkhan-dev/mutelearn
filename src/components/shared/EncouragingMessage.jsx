@@ -1,10 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useState } from 'react';
 import { encouragingMessages } from '../../config/modeDefaults';
+import { stablePick } from '../../lib/textUtils';
 
 export default function EncouragingMessage() {
-  const message = useMemo(
-    () => encouragingMessages[Math.floor(Math.random() * encouragingMessages.length)],
-    [],
+  const [message] = useState(() =>
+    stablePick(encouragingMessages, 'shared-encouragement-message')
   );
 
   return (

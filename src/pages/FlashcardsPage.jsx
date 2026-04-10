@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import { useStudy } from '../contexts/StudyContext';
 
 function DeckCard({ deck, onEdit, onDelete }) {
@@ -211,13 +211,16 @@ function EditDeckModal({ deck, isOpen, onClose, onSubmit }) {
 }
 
 export default function FlashcardsPage() {
+  const { deckId } = useParams();
   const { decks, createDeck, updateDeck, deleteDeck } = useStudy();
   const [showCreate, setShowCreate] = useState(false);
   const [editingDeck, setEditingDeck] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredDecks = decks.filter(
+  const visibleDecks = deckId ? decks.filter((deck) => deck.id === deckId) : decks;
+
+  const filteredDecks = visibleDecks.filter(
     (d) =>
       d.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       (d.subject && d.subject.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -238,7 +241,9 @@ export default function FlashcardsPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-800">Flashcard Decks</h1>
+          <h1 className="text-3xl font-bold text-gray-800">
+            {deckId ? 'Flashcard Deck' : 'Flashcard Decks'}
+          </h1>
           <p className="text-gray-500 mt-1">
             {decks.length} {decks.length === 1 ? 'deck' : 'decks'} &middot;{' '}
             {decks.reduce((s, d) => s + d.cards.length, 0)} total cards
@@ -254,7 +259,7 @@ export default function FlashcardsPage() {
       </div>
 
       {/* Search */}
-      {decks.length > 0 && (
+      {visibleDecks.length > 0 && (
         <div className="relative">
           <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
           <input
@@ -279,19 +284,32 @@ export default function FlashcardsPage() {
             />
           ))}
         </div>
-      ) : decks.length === 0 ? (
+      ) : visibleDecks.length === 0 ? (
         <div className="text-center py-16">
           <p className="text-6xl mb-4">🃏</p>
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">No decks yet</h2>
+          <h2 className="text-2xl font-bold text-gray-800 mb-2">
+            {deckId ? 'Deck not found' : 'No decks yet'}
+          </h2>
           <p className="text-gray-500 max-w-md mx-auto mb-6">
-            Create your first flashcard deck to start studying. You can add cards manually or import them from your notes!
+            {deckId
+              ? 'The deck you requested does not exist yet. You can head back and create one.'
+              : 'Create your first flashcard deck to start studying. You can add cards manually or import them from your notes!'}
           </p>
-          <button
-            onClick={() => setShowCreate(true)}
-            className="px-8 py-3 bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-600 transition-colors"
-          >
-            Create Your First Deck
-          </button>
+          {deckId ? (
+            <Link
+              to="/flashcards"
+              className="inline-block px-8 py-3 bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-600 transition-colors"
+            >
+              View All Decks
+            </Link>
+          ) : (
+            <button
+              onClick={() => setShowCreate(true)}
+              className="px-8 py-3 bg-indigo-500 text-white rounded-xl font-medium hover:bg-indigo-600 transition-colors"
+            >
+              Create Your First Deck
+            </button>
+          )}
         </div>
       ) : (
         <div className="text-center py-12">
