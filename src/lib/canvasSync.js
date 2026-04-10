@@ -16,6 +16,21 @@ async function canvasFetch(path, canvasBaseUrl, canvasToken) {
   return res.json();
 }
 
+// Paginated fetch — Canvas caps per_page at 100 and splits larger lists across pages.
+// We keep requesting until a page returns fewer items than per_page (or the safety cap trips).
+async function canvasFetchAll(basePath, canvasBaseUrl, canvasToken, { perPage = 100, maxPages = 10 } = {}) {
+  const results = [];
+  const joiner = basePath.includes('?') ? '&' : '?';
+  for (let page = 1; page <= maxPages; page += 1) {
+    const pagePath = `${basePath}${joiner}per_page=${perPage}&page=${page}`;
+    const batch = await canvasFetch(pagePath, canvasBaseUrl, canvasToken);
+    if (!Array.isArray(batch) || batch.length === 0) break;
+    results.push(...batch);
+    if (batch.length < perPage) break;
+  }
+  return results;
+}
+
 function inferAssignmentType(assignment) {
   if (assignment.quiz_id) return 'quiz';
   const name = (assignment.name || '').toLowerCase();
@@ -76,15 +91,31 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
   const today = new Date();
   const previousPacks = new Map((previousState?.studyPacks || []).map((pack) => [pack.id, pack]));
 
-  // Fetch courses
-  const rawCourses = await canvasFetch(
-    'courses?enrollment_state=active&include[]=teachers&include[]=total_scores&include[]=current_grading_period_scores&per_page=15',
+  // Only keep assignments that are due within a meaningful window: roughly the
+  // current term. We include recently-overdue work (so students can catch up)
+  // and everything still upcoming. Anything older than ~45 days in the past is
+  // assumed to be from a previous term and ignored.
+  const RECENT_WINDOW_MS = 45 * 24 * 60 * 60 * 1000;
+  const earliestRelevant = new Date(today.getTime() - RECENT_WINDOW_MS);
+
+  // Fetch courses (paginated)
+  const rawCourses = await canvasFetchAll(
+    'courses?enrollment_state=active&include[]=teachers&include[]=total_scores&include[]=current_grading_period_scores&include[]=term',
     canvasBaseUrl,
-    canvasToken
+    canvasToken,
+    { perPage: 50, maxPages: 4 }
   );
 
   const courses = rawCourses
-    .filter((c) => c.name && !c.access_restricted_by_date)
+    .filter((c) => {
+      if (!c.name || c.access_restricted_by_date) return false;
+      // Canvas marks finished courses with end_at in the past, or a term that has ended.
+      const courseEnd = c.end_at ? new Date(c.end_at) : null;
+      if (courseEnd && courseEnd.getTime() < earliestRelevant.getTime()) return false;
+      const termEnd = c.term?.end_at ? new Date(c.term.end_at) : null;
+      if (termEnd && termEnd.getTime() < earliestRelevant.getTime()) return false;
+      return true;
+    })
     .map((course, index) => ({
       id: `canvas-course-${course.id}`,
       canvasCourseId: String(course.id),
@@ -101,10 +132,11 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
   // Fetch assignments and files for each course in parallel
   const courseDataPromises = courses.map(async (course) => {
     const [rawAssignments, rawFiles] = await Promise.all([
-      canvasFetch(
-        `courses/${course.canvasCourseId}/assignments?include[]=submission&order_by=due_at&per_page=20`,
+      canvasFetchAll(
+        `courses/${course.canvasCourseId}/assignments?include[]=submission&order_by=due_at`,
         canvasBaseUrl,
-        canvasToken
+        canvasToken,
+        { perPage: 100, maxPages: 6 }
       ).catch(() => []),
       canvasFetch(
         `courses/${course.canvasCourseId}/files?sort=updated_at&order=desc&per_page=10`,
@@ -114,8 +146,19 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
     ]);
 
     const assignments = rawAssignments
-      .filter((a) => a.name && a.due_at)
+      .filter((a) => {
+        if (!a.name || !a.due_at) return false;
+        // Canvas sometimes returns an overridden per-student due date on the submission.
+        // Prefer it when present so we don't show a stale class-level due_at.
+        const effectiveDueAt = a.submission?.cached_due_date || a.due_at;
+        const dueTime = new Date(effectiveDueAt).getTime();
+        if (Number.isNaN(dueTime)) return false;
+        // Keep upcoming assignments, plus anything due within the recent window.
+        return dueTime >= earliestRelevant.getTime();
+      })
       .map((a) => {
+        // Prefer the student's overridden due date when Canvas provides one.
+        const effectiveDueAt = a.submission?.cached_due_date || a.due_at;
         const type = inferAssignmentType(a);
         const score = a.submission?.score != null && a.points_possible
           ? Math.round((a.submission.score / a.points_possible) * 100)
@@ -129,14 +172,15 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
           title: a.name,
           type,
           topic: extractTopic(a.name),
-          dueAt: a.due_at,
+          dueAt: effectiveDueAt,
           estimatedMinutes: Math.max(15, Math.min(90, Math.round((a.points_possible || 10) * 1.5))),
           status: inferStatus(a.submission),
           scoreHint: score,
           reviewAvailable: Boolean(a.quiz_id || (a.submission?.graded_at && score !== null)),
           description: (a.description || '').replace(/<[^>]*>/g, '').slice(0, 200),
         };
-      });
+      })
+      .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt));
 
     // Extract topics from assignment names
     const topics = [...new Set(assignments.map((a) => a.topic).filter(Boolean))].slice(0, 5);
