@@ -153,7 +153,11 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
         const effectiveDueAt = a.submission?.cached_due_date || a.due_at;
         const dueTime = new Date(effectiveDueAt).getTime();
         if (Number.isNaN(dueTime)) return false;
-        // Keep upcoming assignments, plus anything due within the recent window.
+        // Always keep completed/submitted work so students can look back at
+        // past assignments, regardless of how old the due date is.
+        const status = inferStatus(a.submission);
+        if (status === 'completed' || status === 'submitted') return true;
+        // Otherwise keep upcoming assignments plus the recent window.
         return dueTime >= earliestRelevant.getTime();
       })
       .map((a) => {
@@ -201,8 +205,40 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
 
   const courseData = await Promise.all(courseDataPromises);
 
-  const allAssignments = courseData.flatMap((d) => d.assignments);
+  const freshAssignments = courseData.flatMap((d) => d.assignments);
   const allFiles = courseData.flatMap((d) => d.files);
+
+  // Preserve completed Canvas assignments from the prior state so the student
+  // can always look back at what they finished — even if the assignment's
+  // course is no longer returned by the current sync (archived term, etc.).
+  // Also preserve any status the student set locally via completeAssignment(),
+  // since Canvas may not yet reflect a just-submitted item.
+  const freshAssignmentIds = new Set(freshAssignments.map((a) => a.id));
+  const previousAssignments = previousState?.assignments || [];
+  const previousById = new Map(previousAssignments.map((a) => [a.id, a]));
+
+  const retainedCompleted = previousAssignments.filter(
+    (a) =>
+      a.connectorId === 'canvas' &&
+      (a.status === 'completed' || a.status === 'submitted') &&
+      !freshAssignmentIds.has(a.id)
+  );
+
+  // When a fresh assignment exists in previous state with a completedAt
+  // timestamp set locally, preserve that completion marker.
+  const allAssignments = [
+    ...freshAssignments.map((a) => {
+      const prev = previousById.get(a.id);
+      if (prev?.status === 'completed' && a.status !== 'completed') {
+        return { ...a, status: 'completed', completedAt: prev.completedAt || a.completedAt };
+      }
+      if (prev?.completedAt && !a.completedAt) {
+        return { ...a, completedAt: prev.completedAt };
+      }
+      return a;
+    }),
+    ...retainedCompleted,
+  ];
 
   // Build study packs from open assignments (not reading type, with due dates in the future or recently past)
   const openAssignments = allAssignments.filter(
@@ -245,6 +281,16 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
     return pack;
   });
 
+  // Keep any prior courses that are referenced by retained historical
+  // assignments but are no longer returned by the current sync — otherwise
+  // the historical assignments would become orphaned with no course context.
+  const freshCourseIds = new Set(courses.map((c) => c.id));
+  const referencedCourseIds = new Set(retainedCompleted.map((a) => a.courseId));
+  const retainedCourses = (previousState?.courses || []).filter(
+    (c) => c.connectorId === 'canvas' && referencedCourseIds.has(c.id) && !freshCourseIds.has(c.id)
+  );
+  const allCourses = [...courses, ...retainedCourses];
+
   return {
     connectors: {
       canvas: {
@@ -256,7 +302,7 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
         lastSyncedAt: today.toISOString(),
       },
     },
-    courses,
+    courses: allCourses,
     assignments: allAssignments,
     files: allFiles,
     studyPacks,
