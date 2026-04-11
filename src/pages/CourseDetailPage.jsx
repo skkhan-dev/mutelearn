@@ -307,24 +307,44 @@ export default function CourseDetailPage() {
                         className="rounded-2xl border border-gray-100 bg-gray-50 px-4 py-4 space-y-4"
                       >
                         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
-                          <div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              <p className="font-semibold text-gray-800">{assignment.title}</p>
-                              <span className="px-2.5 py-1 rounded-full bg-white text-gray-500 text-xs font-semibold capitalize border border-gray-200">
-                                {assignment.type}
-                              </span>
-                              {assignment.reviewAvailable && (
-                                <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-100">
-                                  Review available
+                          <div className="flex items-start gap-3 min-w-0">
+                            {assignment.status !== 'completed' && (
+                              <input
+                                type="checkbox"
+                                checked={!!assignment.markedForStudy}
+                                onChange={() => toggleAssignmentStudyMark(assignment.id)}
+                                title={
+                                  assignment.markedForStudy
+                                    ? 'Remove from Study Session'
+                                    : 'Mark for Study — appears in Study Session tab'
+                                }
+                                className="mt-1 h-5 w-5 rounded border-2 border-amber-400 text-amber-600 accent-amber-600 focus:ring-amber-400 cursor-pointer flex-shrink-0"
+                              />
+                            )}
+                            <div className="min-w-0">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <p className="font-semibold text-gray-800">{assignment.title}</p>
+                                <span className="px-2.5 py-1 rounded-full bg-white text-gray-500 text-xs font-semibold capitalize border border-gray-200">
+                                  {assignment.type}
                                 </span>
-                              )}
+                                {assignment.reviewAvailable && (
+                                  <span className="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold border border-amber-100">
+                                    Review available
+                                  </span>
+                                )}
+                                {assignment.markedForStudy && (
+                                  <span className="px-2.5 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
+                                    Studying
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-sm text-gray-500 mt-2">
+                                {formatDateTime(assignment.dueAt)} · {buildDueLabel(assignment.dueAt)}
+                              </p>
+                              <p className="text-sm text-gray-600 mt-2">
+                                {assignment.description || 'No assignment summary was provided by the LMS.'}
+                              </p>
                             </div>
-                            <p className="text-sm text-gray-500 mt-2">
-                              {formatDateTime(assignment.dueAt)} · {buildDueLabel(assignment.dueAt)}
-                            </p>
-                            <p className="text-sm text-gray-600 mt-2">
-                              {assignment.description || 'No assignment summary was provided by the LMS.'}
-                            </p>
                           </div>
                           <span className={`px-3 py-2 rounded-xl text-sm font-semibold border ${statusTone}`}>
                             {assignment.status.replace('_', ' ')}
@@ -349,28 +369,6 @@ export default function CourseDetailPage() {
                                 In Progress
                               </button>
                             )}
-                            <label
-                              title={
-                                assignment.markedForStudy
-                                  ? 'Remove from Study Session'
-                                  : 'Mark for Study — appears in Study Session tab'
-                              }
-                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors cursor-pointer select-none ${
-                                assignment.markedForStudy
-                                  ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200'
-                                  : 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                              }`}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={!!assignment.markedForStudy}
-                                onChange={() => toggleAssignmentStudyMark(assignment.id)}
-                                className="h-4 w-4 rounded border-amber-400 text-amber-600 accent-amber-600 focus:ring-amber-400"
-                              />
-                              <span className="font-medium text-sm">
-                                {assignment.markedForStudy ? 'Studying' : 'Mark for Study'}
-                              </span>
-                            </label>
                             <button
                               onClick={() => handleComplete(assignment)}
                               className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
