@@ -63,7 +63,21 @@ export function sortByDate(items, key = 'dueAt') {
   return [...items].sort((a, b) => new Date(a[key]) - new Date(b[key]));
 }
 
-export function buildDueLabel(dateInput, referenceDate = new Date()) {
+export function buildDueLabel(dateInput, optionsOrReferenceDate) {
+  // Backwards-compatible: second arg can be a Date (legacy) or an options object.
+  const isOptions =
+    optionsOrReferenceDate != null &&
+    typeof optionsOrReferenceDate === 'object' &&
+    !(optionsOrReferenceDate instanceof Date);
+  const status = isOptions ? optionsOrReferenceDate.status : undefined;
+  const referenceDate = isOptions
+    ? optionsOrReferenceDate.referenceDate || new Date()
+    : optionsOrReferenceDate || new Date();
+
+  // Completed/submitted assignments should never read as overdue.
+  if (status === 'completed') return 'Completed';
+  if (status === 'submitted') return 'Submitted';
+
   const dayDiff = daysUntil(dateInput, referenceDate);
 
   if (dayDiff < 0) return `Overdue by ${Math.abs(dayDiff)} day${Math.abs(dayDiff) === 1 ? '' : 's'}`;
