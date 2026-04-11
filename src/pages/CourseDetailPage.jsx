@@ -61,6 +61,7 @@ export default function CourseDetailPage() {
     studyPacks,
     updateAssignmentStatus,
     completeAssignment,
+    toggleAssignmentStudyMark,
   } = useLMS();
   const { addXP } = useGamification();
   const [completedToast, setCompletedToast] = useState(null);
@@ -348,6 +349,21 @@ export default function CourseDetailPage() {
                                 In Progress
                               </button>
                             )}
+                            <button
+                              onClick={() => toggleAssignmentStudyMark(assignment.id)}
+                              className={`px-4 py-2 rounded-xl border transition-colors ${
+                                assignment.markedForStudy
+                                  ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200'
+                                  : 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                              }`}
+                              title={
+                                assignment.markedForStudy
+                                  ? 'Remove from Study Session'
+                                  : 'Mark for Study — appears in Study Session tab'
+                              }
+                            >
+                              {assignment.markedForStudy ? '★ Studying' : '☆ Mark for Study'}
+                            </button>
                             <button
                               onClick={() => handleComplete(assignment)}
                               className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"

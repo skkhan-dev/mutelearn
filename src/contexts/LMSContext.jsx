@@ -252,6 +252,32 @@ export function LMSProvider({ children }) {
     [setLmsState]
   );
 
+  const toggleAssignmentStudyMark = useCallback(
+    (assignmentId) => {
+      setLmsState((previousState) => ({
+        ...previousState,
+        assignments: previousState.assignments.map((assignment) =>
+          assignment.id === assignmentId
+            ? { ...assignment, markedForStudy: !assignment.markedForStudy }
+            : assignment
+        ),
+      }));
+    },
+    [setLmsState]
+  );
+
+  const updateAssignmentStudyNotes = useCallback(
+    (assignmentId, notes) => {
+      setLmsState((previousState) => ({
+        ...previousState,
+        assignments: previousState.assignments.map((assignment) =>
+          assignment.id === assignmentId ? { ...assignment, studyNotes: notes } : assignment
+        ),
+      }));
+    },
+    [setLmsState]
+  );
+
   const linkStudyPackDeck = useCallback(
     (packId, deckId) => {
       setLmsState((previousState) => ({
@@ -336,6 +362,14 @@ export function LMSProvider({ children }) {
 
   const completedAssignments = useMemo(
     () => assignments.filter((a) => a.status === 'completed'),
+    [assignments]
+  );
+
+  const studyMarkedAssignments = useMemo(
+    () =>
+      assignments
+        .filter((a) => a.markedForStudy)
+        .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt)),
     [assignments]
   );
 
@@ -587,6 +621,9 @@ export function LMSProvider({ children }) {
         completeAssignment,
         completedAssignments,
         completedThisWeek,
+        toggleAssignmentStudyMark,
+        updateAssignmentStudyNotes,
+        studyMarkedAssignments,
         linkStudyPackDeck,
         toggleStudyPackChecklistItem,
         updateStudyPackReflection,

@@ -3,6 +3,60 @@ import { useSearchParams, Link } from 'react-router-dom';
 import { useMode } from '../contexts/ModeContext';
 import { useStudy } from '../contexts/StudyContext';
 import { useGamification } from '../contexts/GamificationContext';
+import { useLMS } from '../contexts/LMSContext';
+import { buildDueLabel, formatDateTime } from '../lib/dateUtils';
+
+function AssignmentStudyZone() {
+  const { studyMarkedAssignments, updateAssignmentStudyNotes, toggleAssignmentStudyMark } = useLMS();
+
+  if (studyMarkedAssignments.length === 0) return null;
+
+  return (
+    <section className="bg-white rounded-2xl p-6 shadow-sm border border-amber-100">
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-xl">★</span>
+        <h2 className="text-lg font-bold text-gray-800">Assignment Study Zone</h2>
+      </div>
+      <p className="text-sm text-gray-500 mb-4">
+        Notes and info for the assignments you marked for study. Everything you type is saved automatically.
+      </p>
+
+      <div className="space-y-4">
+        {studyMarkedAssignments.map((assignment) => (
+          <div
+            key={assignment.id}
+            className="rounded-xl border border-amber-100 bg-amber-50/40 p-4 space-y-3"
+          >
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div className="min-w-0">
+                <p className="font-semibold text-gray-800">{assignment.title}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {assignment.course?.name || 'Course'} · {formatDateTime(assignment.dueAt)} ·{' '}
+                  {buildDueLabel(assignment.dueAt)}
+                </p>
+              </div>
+              <button
+                onClick={() => toggleAssignmentStudyMark(assignment.id)}
+                className="text-xs text-amber-700 hover:text-amber-900 underline"
+                title="Remove this assignment from the study zone"
+              >
+                Unmark
+              </button>
+            </div>
+
+            <textarea
+              value={assignment.studyNotes || ''}
+              onChange={(event) => updateAssignmentStudyNotes(assignment.id, event.target.value)}
+              placeholder="Type notes, key concepts, practice questions, anything that will help you study…"
+              rows={5}
+              className="w-full rounded-lg border border-amber-200 bg-white px-3 py-2 text-sm text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-amber-300"
+            />
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 
 const PACING_OPTIONS = [
   {
@@ -148,6 +202,9 @@ export default function StudySession() {
     return (
       <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         <h1 className="text-3xl font-bold text-gray-800">Start a Study Session</h1>
+
+        <AssignmentStudyZone />
+
         <p className="text-gray-500">Choose a deck to study:</p>
 
         {decks.length > 0 ? (
