@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useMode } from './ModeContext';
 import { useUser } from './UserContext';
@@ -36,7 +36,7 @@ function getModeChunkLabel(mode, focusMinutes) {
 }
 
 export function LMSProvider({ children }) {
-  const { user } = useUser();
+  const { user, firebaseUser, isSignedIn } = useUser();
   const { mode, modeConfig } = useMode();
   const { isBackendOnline, sessionToken, refreshConnectors, refreshJobs } = usePlatform();
   const [lmsState, setLmsState] = useLocalStorage('mutelearn-lms-state', INITIAL_STATE);
@@ -159,6 +159,28 @@ export function LMSProvider({ children }) {
   const connectCanvasDemo = useCallback(() => syncCanvas({ forceDemo: true }), [syncCanvas]);
 
   const syncCanvasDemo = useCallback(() => syncCanvas(), [syncCanvas]);
+
+  // Auto-sync Canvas whenever the user signs in. We track the last UID we
+  // auto-synced for so that reloads, mode changes, or re-renders don't kick
+  // off a new sync — only a genuine new sign-in does. When the user signs
+  // out, we reset so the next sign-in triggers a fresh sync.
+  const lastAutoSyncedUidRef = useRef(null);
+  useEffect(() => {
+    if (!isSignedIn) {
+      lastAutoSyncedUidRef.current = null;
+      return;
+    }
+    const uid = firebaseUser?.uid;
+    if (!uid || lastAutoSyncedUidRef.current === uid) return;
+    if (!canvasCredentials?.baseUrl || !canvasCredentials?.token) return;
+    if (isSyncing) return;
+
+    lastAutoSyncedUidRef.current = uid;
+    syncCanvas().catch(() => {
+      // On failure let the next sign-in retry.
+      lastAutoSyncedUidRef.current = null;
+    });
+  }, [isSignedIn, firebaseUser, canvasCredentials, isSyncing, syncCanvas]);
 
   const disconnectConnector = useCallback(
     (connectorId) => {
