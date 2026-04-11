@@ -339,7 +339,8 @@ export default function CourseDetailPage() {
                                 )}
                               </div>
                               <p className="text-sm text-gray-500 mt-2">
-                                {formatDateTime(assignment.dueAt)} · {buildDueLabel(assignment.dueAt)}
+                                {formatDateTime(assignment.dueAt)} ·{' '}
+                                {buildDueLabel(assignment.dueAt, { status: assignment.status })}
                               </p>
                               <p className="text-sm text-gray-600 mt-2">
                                 {assignment.description || 'No assignment summary was provided by the LMS.'}

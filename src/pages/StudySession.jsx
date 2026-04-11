@@ -32,7 +32,7 @@ function AssignmentStudyZone() {
                 <p className="font-semibold text-gray-800">{assignment.title}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   {assignment.course?.name || 'Course'} · {formatDateTime(assignment.dueAt)} ·{' '}
-                  {buildDueLabel(assignment.dueAt)}
+                  {buildDueLabel(assignment.dueAt, { status: assignment.status })}
                 </p>
               </div>
               <button
