@@ -349,21 +349,28 @@ export default function CourseDetailPage() {
                                 In Progress
                               </button>
                             )}
-                            <button
-                              onClick={() => toggleAssignmentStudyMark(assignment.id)}
-                              className={`px-4 py-2 rounded-xl border transition-colors ${
-                                assignment.markedForStudy
-                                  ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200'
-                                  : 'border-amber-200 text-amber-700 hover:bg-amber-50'
-                              }`}
+                            <label
                               title={
                                 assignment.markedForStudy
                                   ? 'Remove from Study Session'
                                   : 'Mark for Study — appears in Study Session tab'
                               }
+                              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl border transition-colors cursor-pointer select-none ${
+                                assignment.markedForStudy
+                                  ? 'bg-amber-100 border-amber-300 text-amber-800 hover:bg-amber-200'
+                                  : 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                              }`}
                             >
-                              {assignment.markedForStudy ? '★ Studying' : '☆ Mark for Study'}
-                            </button>
+                              <input
+                                type="checkbox"
+                                checked={!!assignment.markedForStudy}
+                                onChange={() => toggleAssignmentStudyMark(assignment.id)}
+                                className="h-4 w-4 rounded border-amber-400 text-amber-600 accent-amber-600 focus:ring-amber-400"
+                              />
+                              <span className="font-medium text-sm">
+                                {assignment.markedForStudy ? 'Studying' : 'Mark for Study'}
+                              </span>
+                            </label>
                             <button
                               onClick={() => handleComplete(assignment)}
                               className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
