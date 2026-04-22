@@ -103,6 +103,8 @@ export default function Dashboard() {
     todayPlan,
     completedThisWeek,
     assignments,
+    dueReminders,
+    clearAssignmentReminder,
   } = useLMS();
   const { openProfessor } = useProfessor();
   const { xp, level, streak, stats, sessionHistory } = useGamification();
@@ -332,6 +334,48 @@ export default function Dashboard() {
               />
             )}
           </div>
+
+          {dueReminders.length > 0 && (
+            <div className="bg-white rounded-3xl p-5 shadow-sm border border-amber-100">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold text-gray-800">🔔 Reminders due</h2>
+                  <p className="text-sm text-gray-500 mt-1">
+                    You asked to be reminded about these. Clear when you're done, or mark the assignment.
+                  </p>
+                </div>
+              </div>
+              <div className="mt-4 space-y-3">
+                {dueReminders.map((reminder) => (
+                  <div
+                    key={reminder.id}
+                    className="rounded-2xl border border-amber-100 bg-amber-50 px-4 py-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+                  >
+                    <div>
+                      <p className="font-semibold text-gray-800">{reminder.title}</p>
+                      <p className="text-sm text-gray-500">
+                        {reminder.course?.name || 'Course'} · Due {formatDateTime(reminder.dueAt)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap gap-2 sm:justify-end">
+                      <button
+                        onClick={() => markStatus(reminder, 'completed')}
+                        className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-sm"
+                      >
+                        ✓ Done
+                      </button>
+                      <button
+                        onClick={() => clearAssignmentReminder(reminder.id)}
+                        className="px-4 py-2 rounded-xl border border-amber-200 text-amber-700 hover:bg-amber-100 transition-colors text-sm"
+                      >
+                        Clear reminder
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="grid gap-5 xl:grid-cols-[1fr_1fr]">
             <div className="bg-white rounded-3xl p-5 shadow-sm border border-gray-100">

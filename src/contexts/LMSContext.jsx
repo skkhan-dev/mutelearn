@@ -278,6 +278,43 @@ export function LMSProvider({ children }) {
     [setLmsState]
   );
 
+  const setAssignmentReminder = useCallback(
+    (assignmentId, days) => {
+      const reminderAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+      setLmsState((previousState) => ({
+        ...previousState,
+        assignments: previousState.assignments.map((assignment) =>
+          assignment.id === assignmentId ? { ...assignment, reminderAt } : assignment
+        ),
+      }));
+    },
+    [setLmsState]
+  );
+
+  const setAssignmentReminderAt = useCallback(
+    (assignmentId, isoTimestamp) => {
+      setLmsState((previousState) => ({
+        ...previousState,
+        assignments: previousState.assignments.map((assignment) =>
+          assignment.id === assignmentId ? { ...assignment, reminderAt: isoTimestamp } : assignment
+        ),
+      }));
+    },
+    [setLmsState]
+  );
+
+  const clearAssignmentReminder = useCallback(
+    (assignmentId) => {
+      setLmsState((previousState) => ({
+        ...previousState,
+        assignments: previousState.assignments.map((assignment) =>
+          assignment.id === assignmentId ? { ...assignment, reminderAt: null } : assignment
+        ),
+      }));
+    },
+    [setLmsState]
+  );
+
   const linkStudyPackDeck = useCallback(
     (packId, deckId) => {
       setLmsState((previousState) => ({
@@ -371,6 +408,23 @@ export function LMSProvider({ children }) {
         .filter((a) => a.markedForStudy)
         .sort((a, b) => new Date(a.dueAt) - new Date(b.dueAt)),
     [assignments]
+  );
+
+  // Reminder surfaces: assignments the student asked to be reminded about.
+  // dueReminders = reminderAt already past (actionable now); pendingReminders
+  // = reminderAt still in the future (informational).
+  const reminderAssignments = useMemo(() => {
+    const now = Date.now();
+    return assignments
+      .filter((a) => a.reminderAt && ['pending', 'in_progress', 'overdue'].includes(a.status))
+      .map((a) => ({ ...a, _reminderTime: new Date(a.reminderAt).getTime() }))
+      .sort((a, b) => a._reminderTime - b._reminderTime)
+      .map(({ _reminderTime, ...rest }) => ({ ...rest, reminderDue: new Date(rest.reminderAt).getTime() <= now }));
+  }, [assignments]);
+
+  const dueReminders = useMemo(
+    () => reminderAssignments.filter((a) => a.reminderDue),
+    [reminderAssignments]
   );
 
   const completedThisWeek = useMemo(() => {
@@ -627,6 +681,11 @@ export function LMSProvider({ children }) {
         toggleAssignmentStudyMark,
         updateAssignmentStudyNotes,
         studyMarkedAssignments,
+        setAssignmentReminder,
+        setAssignmentReminderAt,
+        clearAssignmentReminder,
+        reminderAssignments,
+        dueReminders,
         linkStudyPackDeck,
         toggleStudyPackChecklistItem,
         updateStudyPackReflection,

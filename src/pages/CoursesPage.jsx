@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useLMS } from '../contexts/LMSContext';
 import { usePlatform } from '../contexts/PlatformContext';
 import { useAssignmentStatus } from '../hooks/useAssignmentStatus';
+import ReminderControl from '../components/lms/ReminderControl';
 import { buildDueLabel, formatDateOnly, formatDateTime } from '../lib/dateUtils';
 
 const OPEN_STATUSES = ['pending', 'in_progress', 'overdue'];
@@ -111,10 +112,11 @@ function CourseCard({ course, assignments, files, studyPacks, onOpenCourse, onOp
                         {assignment.type} · {formatDateTime(assignment.dueAt)}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 flex-shrink-0">
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
                       <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-indigo-600 border border-indigo-100">
                         {buildDueLabel(assignment.dueAt, { status: assignment.status })}
                       </span>
+                      <ReminderControl assignment={assignment} compact />
                       <button
                         onClick={() => onMarkDone(assignment)}
                         className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"

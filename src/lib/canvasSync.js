@@ -234,18 +234,38 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
       !freshAssignmentIds.has(a.id)
   );
 
-  // When a fresh assignment exists in previous state with a completedAt
-  // timestamp set locally, preserve that completion marker.
+  // Merge any local-only fields from the previous state onto fresh records
+  // so re-syncs don't clobber student-set state (study flags, notes,
+  // reminders, in-app completions, manual overdue/late labels).
+  const LOCAL_FIELDS = ['markedForStudy', 'studyNotes', 'reminderAt'];
+  const LOCAL_STATUSES = ['completed', 'late', 'overdue'];
+
   const allAssignments = [
     ...freshAssignments.map((a) => {
       const prev = previousById.get(a.id);
-      if (prev?.status === 'completed' && a.status !== 'completed') {
-        return { ...a, status: 'completed', completedAt: prev.completedAt || a.completedAt };
+      if (!prev) return a;
+      const merged = { ...a };
+
+      // Preserve locally-set fields verbatim.
+      for (const field of LOCAL_FIELDS) {
+        if (prev[field] != null && merged[field] == null) {
+          merged[field] = prev[field];
+        }
       }
-      if (prev?.completedAt && !a.completedAt) {
-        return { ...a, completedAt: prev.completedAt };
+
+      // Preserve status when the student set one Canvas wouldn't know about
+      // (completed in-app, marked overdue, marked late). Canvas-driven
+      // statuses (submitted) always win over their unset counterparts.
+      if (LOCAL_STATUSES.includes(prev.status) && a.status !== 'completed' && a.status !== 'submitted') {
+        merged.status = prev.status;
       }
-      return a;
+
+      // Preserve the earliest completedAt we know about.
+      if (prev.completedAt && !merged.completedAt) {
+        merged.completedAt = prev.completedAt;
+      }
+
+      return merged;
     }),
     ...retainedCompleted,
   ];

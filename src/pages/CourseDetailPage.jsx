@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useLMS } from '../contexts/LMSContext';
 import { useProfessor } from '../contexts/ProfessorContext';
 import { useAssignmentStatus } from '../hooks/useAssignmentStatus';
+import ReminderControl from '../components/lms/ReminderControl';
 import { buildDueLabel, formatDateOnly, formatDateTime, isOverdue } from '../lib/dateUtils';
 
 function StatTile({ label, value, detail, tone = 'indigo' }) {
@@ -345,6 +346,9 @@ export default function CourseDetailPage() {
                                     Studying
                                   </span>
                                 )}
+                                {assignment.reminderAt && !['completed', 'submitted', 'late'].includes(assignment.status) && (
+                                  <ReminderControl assignment={assignment} />
+                                )}
                               </div>
                               <p className="text-sm text-gray-500 mt-2">
                                 {formatDateTime(assignment.dueAt)} ·{' '}
@@ -378,6 +382,7 @@ export default function CourseDetailPage() {
                                 In Progress
                               </button>
                             )}
+                            {!assignment.reminderAt && <ReminderControl assignment={assignment} />}
                             <button
                               onClick={() => handleMarkStatus(assignment, 'overdue')}
                               disabled={assignment.status === 'overdue'}
