@@ -1,11 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useLMS } from '../contexts/LMSContext';
-import { useGamification } from '../contexts/GamificationContext';
 import { useProfessor } from '../contexts/ProfessorContext';
+import { useAssignmentStatus } from '../hooks/useAssignmentStatus';
+import ReminderControl from '../components/lms/ReminderControl';
 import { buildDueLabel, formatDateOnly, formatDateTime, isOverdue } from '../lib/dateUtils';
-
-const XP_BY_TYPE = { exam: 50, quiz: 35, assignment: 25, reading: 15 };
 
 function StatTile({ label, value, detail, tone = 'indigo' }) {
   const toneClasses = {
@@ -63,42 +62,10 @@ export default function CourseDetailPage() {
     files,
     studyPacks,
     updateAssignmentStatus,
-    completeAssignment,
     toggleAssignmentStudyMark,
   } = useLMS();
-  const { addXP } = useGamification();
-  const [completedToast, setCompletedToast] = useState(null);
-
-  const handleComplete = (assignment) => {
-    completeAssignment(assignment.id);
-    const xp = XP_BY_TYPE[assignment.type] || 25;
-    addXP(xp, `Completed: ${assignment.title}`);
-    setCompletedToast({ title: assignment.title, xp });
-    setTimeout(() => setCompletedToast(null), 3000);
-  };
-
-  // Unified handler for the Overdue / Late / Completed quick buttons.
-  // Completed reuses the same flow as the Done button (XP + toast).
-  // Late is treated like a completion (assignment is turned in), just tagged
-  // late. Overdue is a non-terminal flag — it stays on the open list.
-  const handleMarkStatus = (assignment, nextStatus) => {
-    if (nextStatus === 'completed') {
-      handleComplete(assignment);
-      return;
-    }
-    if (nextStatus === 'late') {
-      // Use completeAssignment to get the completedAt timestamp, then override
-      // the status to 'late' so we can still distinguish late-turn-ins.
-      completeAssignment(assignment.id);
-      updateAssignmentStatus(assignment.id, 'late');
-      const xp = Math.round((XP_BY_TYPE[assignment.type] || 25) * 0.5);
-      addXP(xp, `Turned in late: ${assignment.title}`);
-      setCompletedToast({ title: `${assignment.title} (late)`, xp });
-      setTimeout(() => setCompletedToast(null), 3000);
-      return;
-    }
-    updateAssignmentStatus(assignment.id, nextStatus);
-  };
+  const { markStatus: handleMarkStatus, completedToast } = useAssignmentStatus();
+  const handleComplete = (assignment) => handleMarkStatus(assignment, 'completed');
 
   const course = useMemo(
     () => courses.find((item) => item.id === courseId) || null,
@@ -379,6 +346,9 @@ export default function CourseDetailPage() {
                                     Studying
                                   </span>
                                 )}
+                                {assignment.reminderAt && !['completed', 'submitted', 'late'].includes(assignment.status) && (
+                                  <ReminderControl assignment={assignment} />
+                                )}
                               </div>
                               <p className="text-sm text-gray-500 mt-2">
                                 {formatDateTime(assignment.dueAt)} ·{' '}
@@ -412,6 +382,7 @@ export default function CourseDetailPage() {
                                 In Progress
                               </button>
                             )}
+                            {!assignment.reminderAt && <ReminderControl assignment={assignment} />}
                             <button
                               onClick={() => handleMarkStatus(assignment, 'overdue')}
                               disabled={assignment.status === 'overdue'}

@@ -2,7 +2,11 @@ import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLMS } from '../contexts/LMSContext';
 import { usePlatform } from '../contexts/PlatformContext';
+import { useAssignmentStatus } from '../hooks/useAssignmentStatus';
+import ReminderControl from '../components/lms/ReminderControl';
 import { buildDueLabel, formatDateOnly, formatDateTime } from '../lib/dateUtils';
+
+const OPEN_STATUSES = ['pending', 'in_progress', 'overdue'];
 
 function EmptyCourses({ onConnect, canConnectLive }) {
   return (
@@ -24,8 +28,15 @@ function EmptyCourses({ onConnect, canConnectLive }) {
   );
 }
 
-function CourseCard({ course, assignments, files, studyPacks, onOpenCourse, onOpenPack }) {
-  const nextDeadline = assignments[0] || null;
+function CourseCard({ course, assignments, files, studyPacks, onOpenCourse, onOpenPack, onMarkDone }) {
+  // "Next deadline" and "Upcoming work" should only show open items — anything
+  // pending, in-progress, or manually flagged overdue. Completed / submitted /
+  // late work is done and doesn't belong on the upcoming list.
+  const openAssignments = useMemo(
+    () => assignments.filter((a) => OPEN_STATUSES.includes(a.status)),
+    [assignments]
+  );
+  const nextDeadline = openAssignments[0] || null;
   const hasGrade = typeof course.currentGrade === 'number';
   const gradeTone =
     !hasGrade
@@ -61,7 +72,9 @@ function CourseCard({ course, assignments, files, studyPacks, onOpenCourse, onOp
             {nextDeadline ? (
               <>
                 <p className="mt-2 font-semibold text-gray-800">{nextDeadline.title}</p>
-                <p className="text-sm text-gray-500">{buildDueLabel(nextDeadline.dueAt)}</p>
+                <p className="text-sm text-gray-500">
+                  {buildDueLabel(nextDeadline.dueAt, { status: nextDeadline.status })}
+                </p>
               </>
             ) : (
               <p className="mt-2 text-sm text-gray-500">No upcoming tasks</p>
@@ -71,7 +84,7 @@ function CourseCard({ course, assignments, files, studyPacks, onOpenCourse, onOp
             <p className="text-xs uppercase tracking-wide text-gray-400 font-semibold">
               Open work
             </p>
-            <p className="mt-2 font-semibold text-gray-800">{assignments.length} items</p>
+            <p className="mt-2 font-semibold text-gray-800">{openAssignments.length} items</p>
             <p className="text-sm text-gray-500">Assignments, quizzes, and exams</p>
           </div>
           <div className="rounded-2xl bg-gray-50 p-4">
@@ -87,21 +100,31 @@ function CourseCard({ course, assignments, files, studyPacks, onOpenCourse, onOp
           <section className="rounded-2xl border border-gray-100 p-4">
             <h3 className="font-semibold text-gray-800 mb-3">Upcoming work</h3>
             <div className="space-y-3">
-              {assignments.length > 0 ? (
-                assignments.slice(0, 4).map((assignment) => (
+              {openAssignments.length > 0 ? (
+                openAssignments.slice(0, 4).map((assignment) => (
                   <div
                     key={assignment.id}
                     className="flex items-start justify-between gap-3 rounded-2xl bg-gray-50 px-4 py-3"
                   >
-                    <div>
+                    <div className="min-w-0">
                       <p className="font-medium text-gray-800">{assignment.title}</p>
                       <p className="text-sm text-gray-500">
                         {assignment.type} · {formatDateTime(assignment.dueAt)}
                       </p>
                     </div>
-                    <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-indigo-600 border border-indigo-100">
-                      {buildDueLabel(assignment.dueAt)}
-                    </span>
+                    <div className="flex items-center gap-2 flex-shrink-0 flex-wrap justify-end">
+                      <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-white text-indigo-600 border border-indigo-100">
+                        {buildDueLabel(assignment.dueAt, { status: assignment.status })}
+                      </span>
+                      <ReminderControl assignment={assignment} compact />
+                      <button
+                        onClick={() => onMarkDone(assignment)}
+                        className="text-xs font-semibold px-2.5 py-1 rounded-full bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
+                        title="Mark as done"
+                      >
+                        ✓ Done
+                      </button>
+                    </div>
                   </div>
                 ))
               ) : (
@@ -168,6 +191,7 @@ export default function CoursesPage() {
     syncHistory,
   } = useLMS();
   const { backendStatus, session, syncJobs, canvasConfig, requestCanvasAuthLink } = usePlatform();
+  const { markStatus, completedToast } = useAssignmentStatus();
 
   const canConnectLive = Boolean(canvasConfig?.oauthConfigured && session);
 
@@ -268,8 +292,18 @@ export default function CoursesPage() {
               studyPacks={courseStudyPacks}
               onOpenCourse={(selectedCourseId) => navigate(`/courses/${selectedCourseId}`)}
               onOpenPack={(packId) => navigate(`/study-packs/${packId}`)}
+              onMarkDone={(assignment) => markStatus(assignment, 'completed')}
             />
           ))}
+        </div>
+      )}
+
+      {completedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3">
+          <span className="text-xl">🎉</span>
+          <span className="font-medium">
+            {completedToast.title} done! +{completedToast.xp} XP
+          </span>
         </div>
       )}
     </div>
