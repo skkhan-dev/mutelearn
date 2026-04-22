@@ -361,7 +361,7 @@ export function LMSProvider({ children }) {
   );
 
   const completedAssignments = useMemo(
-    () => assignments.filter((a) => a.status === 'completed'),
+    () => assignments.filter((a) => ['completed', 'submitted', 'late'].includes(a.status)),
     [assignments]
   );
 
@@ -498,7 +498,7 @@ export function LMSProvider({ children }) {
           title: assignment.title,
           courseName: assignment.course?.name || 'Course',
           dueAt: assignment.dueAt,
-          dueLabel: buildDueLabel(assignment.dueAt),
+          dueLabel: buildDueLabel(assignment.dueAt, { status: assignment.status }),
           chunkLabel: getModeChunkLabel(mode, recommendedMinutes),
           totalBlocks,
           reviewAvailable: assignment.reviewAvailable,
@@ -526,7 +526,7 @@ export function LMSProvider({ children }) {
       courseId: assignment.course?.id || assignment.courseId || '',
       courseName: assignment.course?.name || 'Course',
       dueAt: assignment.dueAt,
-      dueLabel: buildDueLabel(assignment.dueAt),
+      dueLabel: buildDueLabel(assignment.dueAt, { status: assignment.status }),
       studyPackId: studyPackByAssignmentId.get(assignment.id)?.id || '',
     }));
     const quickWins = openAssignments
@@ -538,7 +538,7 @@ export function LMSProvider({ children }) {
         courseId: assignment.course?.id || assignment.courseId || '',
         courseName: assignment.course?.name || 'Course',
         dueAt: assignment.dueAt,
-        dueLabel: buildDueLabel(assignment.dueAt),
+        dueLabel: buildDueLabel(assignment.dueAt, { status: assignment.status }),
         studyPackId: studyPackByAssignmentId.get(assignment.id)?.id || '',
       }));
 
@@ -562,7 +562,7 @@ export function LMSProvider({ children }) {
             courseId: nextExam.course?.id || nextExam.courseId || '',
             courseName: nextExam.course?.name || 'Course',
             dueAt: nextExam.dueAt,
-            dueLabel: buildDueLabel(nextExam.dueAt),
+            dueLabel: buildDueLabel(nextExam.dueAt, { status: nextExam.status }),
             studyPackId: nextExamPack?.id || '',
             reviewAvailable: nextExam.reviewAvailable,
           }

@@ -1376,25 +1376,62 @@ const server = http.createServer(async (request, response) => {
     const canvasUrl = `${canvasBaseUrl}/api/v1/${canvasPath}${url.search}`;
 
     try {
+      const method = (request.method || 'GET').toUpperCase();
+      const hasBody = ['POST', 'PUT', 'PATCH'].includes(method);
+      const requestHeaders = {
+        Authorization: `Bearer ${canvasTokenHeader}`,
+        Accept: 'application/json',
+      };
+      let forwardedBody;
+      if (hasBody) {
+        // Forward the client's JSON body to Canvas. Without this, any future
+        // mutation endpoints would silently drop their payload and fail.
+        const parsed = await readBody(request);
+        forwardedBody = JSON.stringify(parsed);
+        requestHeaders['Content-Type'] = 'application/json';
+      }
+
       const canvasResponse = await fetch(canvasUrl, {
-        method: request.method,
-        headers: {
-          Authorization: `Bearer ${canvasTokenHeader}`,
-          Accept: 'application/json',
-        },
+        method,
+        headers: requestHeaders,
+        ...(hasBody ? { body: forwardedBody } : {}),
       });
 
       const contentType = canvasResponse.headers.get('content-type') || '';
-      const body = contentType.includes('application/json')
-        ? await canvasResponse.json()
-        : await canvasResponse.text();
+      const rawText = await canvasResponse.text();
 
+      // Error path: always convert to a small JSON envelope so the client
+      // sees a consistent shape instead of an HTML error page or blank body.
+      if (!canvasResponse.ok) {
+        let errorMessage = rawText;
+        if (contentType.includes('application/json')) {
+          try {
+            const parsedErr = JSON.parse(rawText);
+            errorMessage =
+              parsedErr?.errors?.[0]?.message ||
+              parsedErr?.message ||
+              parsedErr?.error ||
+              JSON.stringify(parsedErr).slice(0, 500);
+          } catch {
+            errorMessage = rawText.slice(0, 500);
+          }
+        } else {
+          // Strip HTML tags and collapse whitespace for readability.
+          errorMessage = rawText.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 500);
+        }
+        sendJson(response, canvasResponse.status, {
+          error: errorMessage || `Canvas responded with ${canvasResponse.status}`,
+        });
+        return;
+      }
+
+      // Success path: pass through JSON as-is, or wrap text in text/plain.
       response.writeHead(canvasResponse.status, {
         'Content-Type': contentType.includes('application/json') ? 'application/json' : 'text/plain',
         'Access-Control-Allow-Origin': APP_ORIGIN,
         'Access-Control-Allow-Headers': 'Content-Type, x-canvas-base-url, x-canvas-token',
       });
-      response.end(typeof body === 'string' ? body : JSON.stringify(body));
+      response.end(rawText);
     } catch (proxyError) {
       sendJson(response, 502, { error: `Canvas unreachable: ${proxyError.message}` });
     }

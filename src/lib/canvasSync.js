@@ -168,6 +168,15 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
           ? Math.round((a.submission.score / a.points_possible) * 100)
           : null;
 
+        const status = inferStatus(a.submission);
+        // For Canvas-reported completions, use the graded-at or submitted-at
+        // timestamp so weekly-stats memos that gate on completedAt can count
+        // them correctly.
+        const completedAt =
+          status === 'completed' || status === 'submitted'
+            ? a.submission?.graded_at || a.submission?.submitted_at || null
+            : null;
+
         return {
           id: `canvas-assignment-${a.id}`,
           courseId: course.id,
@@ -178,7 +187,8 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
           topic: extractTopic(a.name),
           dueAt: effectiveDueAt,
           estimatedMinutes: Math.max(15, Math.min(90, Math.round((a.points_possible || 10) * 1.5))),
-          status: inferStatus(a.submission),
+          status,
+          completedAt,
           scoreHint: score,
           reviewAvailable: Boolean(a.quiz_id || (a.submission?.graded_at && score !== null)),
           description: (a.description || '').replace(/<[^>]*>/g, '').slice(0, 200),
@@ -241,8 +251,9 @@ export async function fetchRealCanvasData({ canvasBaseUrl, canvasToken, mode, mo
   ];
 
   // Build study packs from open assignments (not reading type, with due dates in the future or recently past)
+  // Includes manual 'overdue' flag so packs don't disappear when students mark an assignment overdue.
   const openAssignments = allAssignments.filter(
-    (a) => ['pending', 'in_progress'].includes(a.status) && a.type !== 'reading'
+    (a) => ['pending', 'in_progress', 'overdue'].includes(a.status) && a.type !== 'reading'
   );
 
   const focusMinutes = modeConfig?.timer?.focus || 25;

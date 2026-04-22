@@ -6,6 +6,7 @@ import { useLMS } from '../contexts/LMSContext';
 import { useProfessor } from '../contexts/ProfessorContext';
 import { useGamification } from '../contexts/GamificationContext';
 import { useStudy } from '../contexts/StudyContext';
+import { useAssignmentStatus } from '../hooks/useAssignmentStatus';
 import { xpPerLevel, levelNames, encouragingMessages } from '../config/modeDefaults';
 import { formatDateTime, formatRelativeTime } from '../lib/dateUtils';
 import { stablePick } from '../lib/textUtils';
@@ -101,10 +102,12 @@ export default function Dashboard() {
     dashboardInsights,
     todayPlan,
     completedThisWeek,
+    assignments,
   } = useLMS();
   const { openProfessor } = useProfessor();
   const { xp, level, streak, stats, sessionHistory } = useGamification();
   const { decks } = useStudy();
+  const { markStatus, completedToast } = useAssignmentStatus();
 
   const [referenceTime] = useState(() => Date.now());
 
@@ -368,6 +371,16 @@ export default function Dashboard() {
                         </Link>
                       )}
                       <button
+                        onClick={() => {
+                          const full = assignments.find((a) => a.id === item.id);
+                          if (full) markStatus(full, 'completed');
+                        }}
+                        className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors text-center"
+                        title="Mark as done"
+                      >
+                        ✓ Done
+                      </button>
+                      <button
                         onClick={() =>
                           openProfessor({
                             subject: item.courseId || item.courseName,
@@ -618,6 +631,15 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {completedToast && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-emerald-600 text-white px-6 py-3 rounded-xl shadow-lg flex items-center gap-3">
+          <span className="text-xl">🎉</span>
+          <span className="font-medium">
+            {completedToast.title} done! +{completedToast.xp} XP
+          </span>
+        </div>
+      )}
     </div>
   );
 }
