@@ -440,13 +440,16 @@ export function LMSProvider({ children }) {
   const openAssignments = useMemo(
     () =>
       assignments.filter((assignment) =>
-        ['pending', 'in_progress'].includes(assignment.status)
+        ['pending', 'in_progress', 'overdue'].includes(assignment.status)
       ),
     [assignments]
   );
 
   const overdueAssignments = useMemo(
-    () => openAssignments.filter((assignment) => isOverdue(assignment.dueAt)),
+    () =>
+      openAssignments.filter(
+        (assignment) => assignment.status === 'overdue' || isOverdue(assignment.dueAt)
+      ),
     [openAssignments]
   );
 

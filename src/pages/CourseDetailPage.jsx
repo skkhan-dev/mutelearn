@@ -43,7 +43,10 @@ function buildGradeTone(grade) {
 }
 
 function buildStatusTone(status) {
+  if (status === 'completed') return 'bg-emerald-50 text-emerald-700 border-emerald-100';
   if (status === 'submitted') return 'bg-emerald-50 text-emerald-700 border-emerald-100';
+  if (status === 'late') return 'bg-orange-50 text-orange-700 border-orange-200';
+  if (status === 'overdue') return 'bg-amber-50 text-amber-800 border-amber-200';
   if (status === 'in_progress') return 'bg-amber-50 text-amber-700 border-amber-100';
   return 'bg-slate-50 text-slate-700 border-slate-200';
 }
@@ -74,13 +77,43 @@ export default function CourseDetailPage() {
     setTimeout(() => setCompletedToast(null), 3000);
   };
 
+  // Unified handler for the Overdue / Late / Completed quick buttons.
+  // Completed reuses the same flow as the Done button (XP + toast).
+  // Late is treated like a completion (assignment is turned in), just tagged
+  // late. Overdue is a non-terminal flag — it stays on the open list.
+  const handleMarkStatus = (assignment, nextStatus) => {
+    if (nextStatus === 'completed') {
+      handleComplete(assignment);
+      return;
+    }
+    if (nextStatus === 'late') {
+      // Use completeAssignment to get the completedAt timestamp, then override
+      // the status to 'late' so we can still distinguish late-turn-ins.
+      completeAssignment(assignment.id);
+      updateAssignmentStatus(assignment.id, 'late');
+      const xp = Math.round((XP_BY_TYPE[assignment.type] || 25) * 0.5);
+      addXP(xp, `Turned in late: ${assignment.title}`);
+      setCompletedToast({ title: `${assignment.title} (late)`, xp });
+      setTimeout(() => setCompletedToast(null), 3000);
+      return;
+    }
+    updateAssignmentStatus(assignment.id, nextStatus);
+  };
+
   const course = useMemo(
     () => courses.find((item) => item.id === courseId) || null,
     [courseId, courses]
   );
 
+  // Newest (latest due date) first — reverse the ascending sort applied in
+  // LMSContext so current and upcoming work sits on top and historical
+  // assignments settle at the bottom.
   const courseAssignments = useMemo(
-    () => assignments.filter((assignment) => assignment.courseId === courseId),
+    () =>
+      assignments
+        .filter((assignment) => assignment.courseId === courseId)
+        .slice()
+        .sort((a, b) => new Date(b.dueAt) - new Date(a.dueAt)),
     [assignments, courseId]
   );
 
@@ -105,9 +138,13 @@ export default function CourseDetailPage() {
     [courseAssignments]
   );
 
+  // Open = anything that still needs attention. Includes the new manual
+  // "overdue" flag but excludes completed/submitted/late (those are done).
   const openAssignments = useMemo(
     () =>
-      courseAssignments.filter((assignment) => ['pending', 'in_progress'].includes(assignment.status)),
+      courseAssignments.filter((assignment) =>
+        ['pending', 'in_progress', 'overdue'].includes(assignment.status)
+      ),
     [courseAssignments]
   );
 
@@ -120,12 +157,17 @@ export default function CourseDetailPage() {
   }, [courseAssignments]);
 
   const doneAssignments = useMemo(
-    () => courseAssignments.filter((a) => ['completed', 'submitted'].includes(a.status)),
+    () => courseAssignments.filter((a) => ['completed', 'submitted', 'late'].includes(a.status)),
     [courseAssignments]
   );
 
+  // Date-based overdue OR manual overdue flag — either way, the assignment
+  // still needs attention.
   const overdueAssignments = useMemo(
-    () => openAssignments.filter((assignment) => isOverdue(assignment.dueAt)),
+    () =>
+      openAssignments.filter(
+        (assignment) => assignment.status === 'overdue' || isOverdue(assignment.dueAt)
+      ),
     [openAssignments]
   );
 
@@ -352,7 +394,7 @@ export default function CourseDetailPage() {
                           </span>
                         </div>
 
-                        {assignment.status !== 'completed' && (
+                        {!['completed', 'submitted', 'late'].includes(assignment.status) && (
                           <div className="flex flex-wrap gap-3">
                             {pack && (
                               <button
@@ -371,10 +413,29 @@ export default function CourseDetailPage() {
                               </button>
                             )}
                             <button
-                              onClick={() => handleComplete(assignment)}
+                              onClick={() => handleMarkStatus(assignment, 'overdue')}
+                              disabled={assignment.status === 'overdue'}
+                              className={`px-4 py-2 rounded-xl border transition-colors ${
+                                assignment.status === 'overdue'
+                                  ? 'bg-amber-100 border-amber-300 text-amber-800 cursor-default'
+                                  : 'border-amber-200 text-amber-700 hover:bg-amber-50'
+                              }`}
+                              title="Mark this assignment as overdue"
+                            >
+                              Overdue
+                            </button>
+                            <button
+                              onClick={() => handleMarkStatus(assignment, 'late')}
+                              className="px-4 py-2 rounded-xl border border-orange-200 text-orange-700 hover:bg-orange-50 transition-colors"
+                              title="Turned in late — counts as done but tagged late"
+                            >
+                              Late
+                            </button>
+                            <button
+                              onClick={() => handleMarkStatus(assignment, 'completed')}
                               className="px-4 py-2 rounded-xl bg-emerald-500 text-white hover:bg-emerald-600 transition-colors"
                             >
-                              Done
+                              Completed
                             </button>
                           </div>
                         )}
@@ -388,22 +449,37 @@ export default function CourseDetailPage() {
 
               {doneAssignments.length > 0 && (
                 <div className="mt-6">
-                  <h3 className="font-semibold text-gray-600 mb-3">Completed</h3>
+                  <h3 className="font-semibold text-gray-600 mb-3">Done</h3>
                   <div className="space-y-2">
-                    {doneAssignments.map((assignment) => (
-                      <div
-                        key={assignment.id}
-                        className="rounded-2xl bg-emerald-50/50 border border-emerald-100 px-4 py-3 flex items-center gap-3"
-                      >
-                        <span className="text-emerald-500 text-lg">&#10003;</span>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-500 line-through">{assignment.title}</p>
+                    {doneAssignments.map((assignment) => {
+                      const isLate = assignment.status === 'late';
+                      return (
+                        <div
+                          key={assignment.id}
+                          className={`rounded-2xl px-4 py-3 flex items-center gap-3 border ${
+                            isLate
+                              ? 'bg-orange-50/60 border-orange-100'
+                              : 'bg-emerald-50/50 border-emerald-100'
+                          }`}
+                        >
+                          <span className={`text-lg ${isLate ? 'text-orange-500' : 'text-emerald-500'}`}>
+                            {isLate ? '⏰' : '\u2713'}
+                          </span>
+                          <div className="flex-1 min-w-0 flex flex-wrap items-center gap-2">
+                            <p className="text-sm font-medium text-gray-500 line-through">{assignment.title}</p>
+                            {isLate && (
+                              <span className="px-2 py-0.5 rounded-full bg-orange-100 text-orange-800 text-xs font-semibold border border-orange-200">
+                                Late
+                              </span>
+                            )}
+                          </div>
                           <p className="text-xs text-gray-400">
-                            {assignment.type} · {assignment.completedAt ? formatDateOnly(assignment.completedAt) : 'completed'}
+                            {assignment.type} ·{' '}
+                            {assignment.completedAt ? formatDateOnly(assignment.completedAt) : assignment.status}
                           </p>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}

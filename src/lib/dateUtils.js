@@ -74,11 +74,19 @@ export function buildDueLabel(dateInput, optionsOrReferenceDate) {
     ? optionsOrReferenceDate.referenceDate || new Date()
     : optionsOrReferenceDate || new Date();
 
-  // Completed/submitted assignments should never read as overdue.
+  // Completed/submitted/late assignments should never read as overdue.
   if (status === 'completed') return 'Completed';
   if (status === 'submitted') return 'Submitted';
+  if (status === 'late') return 'Turned in late';
 
   const dayDiff = daysUntil(dateInput, referenceDate);
+
+  // Manual overdue flag always wins, even if the date hasn't passed yet.
+  if (status === 'overdue') {
+    return dayDiff < 0
+      ? `Overdue by ${Math.abs(dayDiff)} day${Math.abs(dayDiff) === 1 ? '' : 's'}`
+      : 'Marked overdue';
+  }
 
   if (dayDiff < 0) return `Overdue by ${Math.abs(dayDiff)} day${Math.abs(dayDiff) === 1 ? '' : 's'}`;
   if (dayDiff === 0) return 'Due today';
